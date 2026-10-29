@@ -1,0 +1,62 @@
+/*
+ * Design tokens for MedPrep AI. Colours were sampled from the mockups in docs/design
+ * and checked for text contrast of at least 4.5:1 (WCAG AA).
+ */
+:root {
+  /* Navigation */
+  --color-sidebar: #0b2545; /* deep navy */
+  --color-sidebar-active: #1b3a6b; /* selected nav item */
+  --color-sidebar-text: #d6dfec; /* 11.5:1 on the sidebar */
+
+  /* Surfaces */
+  --color-bg: #f7f8fc; /* page background */
+  --color-surface: #ffffff; /* cards */
+  --color-surface-soft: #f1f5fa; /* citation cards, refusal notice, quiz explanation */
+  --color-border: #d5dce6;
+
+  /* Text */
+  --color-text: #0f1f3d; /* dark navy, 16.4:1 on white */
+  --color-text-muted: #55627a; /* muted slate, 6.1:1 on white */
+
+  /* Primary (teal): buttons, progress, strong states */
+  --color-primary: #0c7c7c; /* white on teal 5.0:1; teal text on white 5.0:1 */
+  --color-primary-hover: #096565;
+  --color-on-primary: #ffffff;
+
+  /* Tiles and states */
+  --color-amber-bg: #fde8c8; /* weak topic tile */
+  --color-amber-text: #6b3e00; /* brown, 7.6:1 on amber */
+  --color-teal-soft-bg: #d5edee; /* medium topic tile */
+  --color-teal-soft-text: #0a4f52; /* 7.6:1 on light teal */
+  --color-correct-bg: #e3f4ea;
+  --color-correct-border: #2e8b57;
+  --color-correct-text: #14573a; /* 7.5:1 */
+  --color-incorrect-bg: #fdecec;
+  --color-incorrect-border: #c0392b;
+  --color-incorrect-text: #7a1812; /* 9.4:1 */
+  --color-progress-todo: #dde3ee;
+  --color-error: #b42318;
+  --color-error-bg: #fdecec;
+
+  /* Focus rings: teal on light backgrounds, light teal on the navy sidebar */
+  --color-focus: #0c7c7c;
+  --color-focus-on-dark: #8fd8d8;
+
+  /* Shape and depth */
+  --radius-card: 16px;
+  --radius-control: 12px;
+  --radius-pill: 999px; /* fully rounded */
+  --shadow-card: 0 1px 3px rgb(15 31 61 / 0.06), 0 4px 14px rgb(15 31 61 / 0.05);
+
+  /* Type and layout */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --sidebar-width: 220px;
+  --content-max: 1040px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+}

@@ -1,0 +1,114 @@
+/* Desktop: a panel on the right side of the screen; the conversation stays usable beside it */
+.panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  width: min(380px, 100%);
+  overflow-y: auto;
+  padding: var(--space-5);
+  background: var(--color-surface);
+  box-shadow: -8px 0 24px rgb(15 31 61 / 0.12);
+  animation: slide-in 0.2s ease-out;
+}
+
+.backdrop {
+  display: none;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.close {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-surface-soft);
+  color: var(--color-text);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.close:hover {
+  background: var(--color-border);
+}
+
+.title {
+  margin-top: var(--space-2);
+  font-size: 1.25rem;
+}
+
+.meta {
+  margin: var(--space-1) 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.file {
+  display: block;
+  font-size: 0.75rem;
+  word-break: break-all;
+}
+
+.snippet {
+  margin: 0;
+  padding: var(--space-4);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 8px;
+  background: var(--color-surface-soft);
+  line-height: 1.6;
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+
+/* Phones: a bottom sheet over a dimmed page */
+@media (max-width: 767px) {
+  .panel {
+    top: auto;
+    left: 0;
+    width: 100%;
+    max-height: 70dvh;
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    padding-bottom: calc(var(--space-5) + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 24px rgb(15 31 61 / 0.15);
+    animation: slide-up 0.2s ease-out;
+  }
+
+  .backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 19;
+    background: rgb(11 37 69 / 0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+}

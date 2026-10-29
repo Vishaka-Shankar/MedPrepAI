@@ -1,0 +1,187 @@
+.exchange {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* My question: navy bubble on the right */
+.question {
+  align-self: flex-end;
+  max-width: 70%;
+  padding: 10px 18px;
+  border-radius: 14px;
+  background: var(--color-sidebar);
+  color: #ffffff;
+  white-space: pre-wrap; /* keep Shift+Enter line breaks */
+}
+
+.subjectTag {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: 0.75rem;
+  color: #c3cfdf;
+}
+
+/* The answer: white card on the left */
+.answer {
+  align-self: flex-start;
+  width: min(750px, 100%);
+  padding: 22px var(--space-5);
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.badge {
+  margin-bottom: var(--space-3);
+}
+
+.answerText {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+/* A [n] mark inside the answer: highlighted and clickable */
+.mark {
+  margin: 0;
+  padding: 0 4px;
+  border: none;
+  border-radius: 6px;
+  background: var(--color-teal-soft-bg);
+  color: var(--color-teal-soft-text);
+  font: inherit;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+}
+.mark:hover {
+  background: #bfe2e4;
+}
+
+/* Source rows under the answer */
+.citations {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.citationRow {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px var(--space-3);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--color-surface-soft);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+.citationRow:hover {
+  border-color: var(--color-border);
+}
+
+.citationTitle strong {
+  font-weight: 700;
+}
+
+.snippet {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* one line here; the full snippet is in the panel */
+}
+
+/* Out of scope: dashed, light grey, no sources */
+.outOfScope {
+  align-self: flex-start;
+  max-width: 750px;
+  margin: 0;
+  padding: var(--space-3) 18px;
+  border: 1px dashed #a3aebd;
+  border-radius: var(--radius-control);
+  background: var(--color-surface-soft);
+  color: #3c4859;
+}
+
+/* Typing indicator */
+.typing {
+  align-self: flex-start;
+  display: flex;
+  gap: 6px;
+  padding: var(--space-4) 20px;
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  animation: bounce 1.2s infinite ease-in-out;
+}
+.dot:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.dot:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+@keyframes bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+/* A failed question */
+.errorBubble {
+  align-self: flex-start;
+  max-width: 750px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-3) 18px;
+  border: 1px solid #f3c4bf;
+  border-radius: var(--radius-control);
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.errorText {
+  margin: 0;
+  flex: 1;
+  min-width: 200px;
+}
+
+@media (max-width: 767px) {
+  .question {
+    max-width: 88%;
+  }
+  .answer {
+    padding: var(--space-4);
+  }
+}

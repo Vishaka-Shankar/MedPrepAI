@@ -1,0 +1,22 @@
+{
+  "name": "chunk_vector_index_384",
+  "type": "vectorSearch",
+  "definition": {
+    "fields": [
+      {
+        "type": "vector",
+        "path": "embedding384",
+        "numDimensions": 384,
+        "similarity": "cosine"
+      },
+      {
+        "type": "filter",
+        "path": "subjectId"
+      },
+      {
+        "type": "filter",
+        "path": "topicId"
+      }
+    ]
+  }
+}

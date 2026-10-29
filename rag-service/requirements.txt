@@ -1,0 +1,30 @@
+# rag-service dependencies (Python 3.12), pinned to the versions tested on 2026-10-28.
+#   py -V:3.12 -m venv .venv
+#   .venv\Scripts\python.exe -m pip install -r requirements.txt
+# torch comes from the CPU-only index (a few hundred MB instead of a ~2.5 GB CUDA build).
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# Ingestion pipeline (M2)
+llama-index-core==0.14.25                  # Document objects + SentenceSplitter chunking
+llama-index-embeddings-huggingface==0.8.0  # bge-small / BGE-M3 embeddings through LlamaIndex
+sentence-transformers==6.2.0
+transformers==5.21.0
+huggingface_hub==2.3.0                     # one-time model download
+torch==2.14.1+cpu
+numpy==2.5.4
+pymupdf==1.26.7                            # PDF text layer + page rendering for OCR (mature release)
+pytesseract==0.3.13                        # calls the Tesseract OCR program
+pillow==13.0.0
+pymongo==4.19.0                            # MongoDB Atlas
+python-dotenv==1.2.4                       # reads the root .env
+psutil==7.2.2                              # free-RAM checks (ingestion, re-embed, Q&A model load)
+
+# Q&A service (M4): app/
+fastapi==0.162.0
+uvicorn==0.54.0                            # runs app.main
+httpx==0.28.1                              # calls Groq / Ollama; also FastAPI's TestClient
+
+# Tests
+pytest==9.1.1
+
+# Later milestones add: ragas, rank-bm25

@@ -1,0 +1,22 @@
+.segments {
+  display: flex;
+  gap: 6px;
+}
+
+.segment {
+  flex: 1;
+  height: 6px;
+  border-radius: var(--radius-pill);
+}
+
+.done {
+  background: var(--color-primary);
+}
+
+.current {
+  background: var(--color-sidebar);
+}
+
+.todo {
+  background: var(--color-progress-todo);
+}

@@ -1,0 +1,45 @@
+/* Same look as the inputs on the login and register pages */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.input:disabled {
+  background: var(--color-surface-soft);
+  color: var(--color-text-muted);
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.hint,
+.error {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.hint {
+  color: var(--color-text-muted);
+}
+
+.error {
+  color: var(--color-error);
+  font-weight: 500;
+}

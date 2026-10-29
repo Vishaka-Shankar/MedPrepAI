@@ -1,0 +1,18 @@
+.card {
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-5);
+}
+
+.default {
+  background: var(--color-surface);
+}
+
+.primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.primary h2,
+.primary h3 {
+  color: var(--color-on-primary);
+}

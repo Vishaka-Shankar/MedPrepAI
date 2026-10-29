@@ -1,0 +1,186 @@
+.app {
+  display: flex;
+  height: 100vh;
+  height: 100dvh; /* the real visible height on phones */
+}
+
+/* ---------- Sidebar (desktop) ---------- */
+.sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-5) 14px var(--space-5);
+  background: var(--color-sidebar);
+  color: var(--color-sidebar-text);
+}
+
+.wordmark {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: #ffffff;
+}
+.sidebarWordmark {
+  padding: var(--space-1) var(--space-3) var(--space-6);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.navItem {
+  display: block;
+  padding: 10px var(--space-3);
+  border-radius: 8px;
+  color: var(--color-sidebar-text);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+.navItem:hover {
+  background: rgb(255 255 255 / 0.06);
+  color: #ffffff;
+}
+.active,
+.active:hover {
+  background: var(--color-sidebar-active);
+  color: #ffffff;
+}
+
+/* Focus rings must stand out on navy */
+.sidebar :focus-visible,
+.mobileHeader :focus-visible {
+  outline-color: var(--color-focus-on-dark);
+}
+
+.sidebarFooter {
+  margin-top: auto; /* pins Log out to the bottom */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+}
+
+.userName {
+  font-size: 0.8rem;
+  color: #9fb0c6;
+}
+
+.footerLink {
+  display: inline-block;
+  padding: var(--space-1) 0;
+  color: var(--color-sidebar-text);
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+.footerLink:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+.footerLink[aria-current='page'] {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.logout {
+  align-self: flex-start;
+  padding: var(--space-1) 0;
+  border: none;
+  background: none;
+  color: var(--color-sidebar-text);
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.logout:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+/* ---------- Page area ---------- */
+.main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto; /* scrolls on its own; the sidebar stays put */
+}
+
+.inner {
+  max-width: var(--content-max);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-7);
+  display: flex;
+  flex-direction: column;
+}
+
+.mobileHeader {
+  display: none;
+}
+
+.headerLinks {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.headerLink {
+  color: var(--color-sidebar-text);
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+.headerLink:hover,
+.headerLink[aria-current='page'] {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+/* ---------- Phones and small tablets: bottom tab bar ---------- */
+@media (max-width: 767px) {
+  .app {
+    flex-direction: column;
+  }
+
+  .mobileHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-sidebar);
+  }
+
+  .main {
+    order: 2;
+  }
+
+  .inner {
+    padding: var(--space-4);
+  }
+
+  .sidebar {
+    order: 3; /* below the page */
+    width: auto;
+    flex-direction: row;
+    padding: 6px var(--space-2) calc(6px + env(safe-area-inset-bottom));
+  }
+
+  .sidebarWordmark,
+  .sidebarFooter {
+    display: none;
+  }
+
+  .nav {
+    flex: 1;
+    flex-direction: row;
+    gap: var(--space-1);
+  }
+
+  .navItem {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 2px;
+    text-align: center;
+    font-size: 0.75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

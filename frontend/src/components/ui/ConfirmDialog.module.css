@@ -1,0 +1,57 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: rgb(15 31 61 / 0.45); /* dimmed navy */
+}
+
+.dialog {
+  width: 100%;
+  max-width: 440px;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  box-shadow: 0 12px 40px rgb(15 31 61 / 0.25);
+}
+
+.title {
+  font-size: 1.2rem;
+  margin-bottom: var(--space-3);
+}
+
+.description {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+.description p {
+  margin: 0 0 var(--space-2);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}

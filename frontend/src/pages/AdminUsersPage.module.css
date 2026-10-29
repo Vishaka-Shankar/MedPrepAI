@@ -1,0 +1,134 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.title {
+  font-size: 1.75rem;
+}
+
+.search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+.searchField {
+  flex: 1 1 260px;
+  max-width: 420px;
+}
+
+.tableCard {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* The table scrolls sideways on phones instead of widening the page */
+.scroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+.table th,
+.table td {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border);
+}
+.table th {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  background: var(--color-surface-soft);
+}
+.table td:last-child {
+  text-align: right;
+}
+
+.email {
+  overflow-wrap: anywhere;
+}
+
+.meRow {
+  background: var(--color-teal-soft-bg);
+}
+.you {
+  color: var(--color-teal-soft-text);
+  font-weight: 600;
+}
+
+.select {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.select:disabled {
+  background: var(--color-surface-soft);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.deleteButton {
+  min-height: 40px;
+  padding: 0 var(--space-4);
+}
+
+.note {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.message {
+  margin: 0;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  color: var(--color-text-muted);
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.status,
+.error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+.status {
+  background: var(--color-correct-bg);
+  color: var(--color-correct-text);
+}
+.error {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+@media (max-width: 767px) {
+  .title {
+    font-size: 1.35rem;
+  }
+}

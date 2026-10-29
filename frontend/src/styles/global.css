@@ -1,0 +1,79 @@
+/* Base styles for plain elements. Component styles live next to each component (*.module.css). */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  color: var(--color-text);
+  line-height: 1.25;
+}
+
+a {
+  color: var(--color-primary);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+/* One visible focus ring for everything a keyboard can reach */
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Text for screen readers only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Respect "reduce motion": no animations or smooth scrolling anywhere */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Shown while the saved login is checked */
+.page-loading {
+  text-align: center;
+  margin-top: 4rem;
+  color: var(--color-text-muted);
+}
