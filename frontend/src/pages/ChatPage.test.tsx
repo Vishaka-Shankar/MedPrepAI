@@ -9,7 +9,8 @@ import { ChatMessage } from '../api/chatTypes';
 import { tokenStorage } from '../api/client';
 import { App } from '../App';
 import { AuthProvider } from '../auth/AuthContext';
-import { EXAMPLE_QUESTIONS, SERVICE_DOWN, TIMED_OUT } from './ChatPage';
+import { SUGGESTION_POOL } from '../lib/suggestions';
+import { SERVICE_DOWN, TIMED_OUT } from './ChatPage';
 
 // No real network: the auth and chat APIs are replaced by mocks
 vi.mock('../api/auth', () => ({ authApi: { login: vi.fn(), register: vi.fn(), me: vi.fn() } }));
@@ -86,7 +87,7 @@ describe('Chat page', () => {
       chat.history.mockResolvedValue([]);
       openChat();
       expect(await screen.findByRole('heading', { name: 'Ask the syllabus' })).toBeInTheDocument();
-      expect(screen.getByText('Answers come only from your MDCAT material.')).toBeInTheDocument();
+      expect(screen.getByText('Answers come only from your MDCAT books, with page references.')).toBeInTheDocument();
       expect(screen.queryByText(/sample data/i)).not.toBeInTheDocument();
       expect(within(screen.getByRole('group', { name: 'Subject' })).getByRole('button', { name: 'All' })).toHaveAttribute(
         'aria-pressed',
@@ -114,9 +115,102 @@ describe('Chat page', () => {
       await userEvent.type(await screen.findByLabelText('Your question'), 'What is osmosis?{Enter}');
       expect(chat.ask).toHaveBeenCalledWith('What is osmosis?', null);
     });
+
+    it('shows only the selected subject\'s questions', async () => {
+      // Asked under All: the loop of Henle answer cites Biology XII, the acids answer cites Chemistry X
+      const henle = answered({
+        id: 'b1',
+        question: 'What is the function of the loop of Henle?',
+        citations: [{ source: 'STBB_Biology_XII.pdf', page: 21, snippet: 'These capillaries are permeable to water.' }],
+      });
+      const acids = answered({
+        id: 'c1',
+        question: 'What are acids and bases?',
+        subjectId: 'chemistry',
+        citations: [{ source: 'STBB_Chemistry_X.pdf', page: 34, snippet: 'Neutralization makes salt and water.' }],
+      });
+      chat.history.mockResolvedValue([henle, acids, outOfScope()]);
+      openChat();
+      const pills = within(await screen.findByRole('group', { name: 'Subject' }));
+      const log = within(screen.getByRole('log', { name: 'Conversation' })); // the Sources panel repeats a question
+      await log.findByText(henle.question);
+
+      await userEvent.click(pills.getByRole('button', { name: 'Chemistry' }));
+      expect(log.getByText(acids.question)).toBeInTheDocument();
+      expect(log.queryByText(henle.question)).not.toBeInTheDocument();
+      expect(log.queryByText('Who won the cricket world cup?')).not.toBeInTheDocument(); // refused: only under All
+
+      await userEvent.click(pills.getByRole('button', { name: 'Biology' }));
+      expect(log.getByText(henle.question)).toBeInTheDocument();
+      expect(log.queryByText(acids.question)).not.toBeInTheDocument();
+
+      await userEvent.click(pills.getByRole('button', { name: 'All' }));
+      expect(log.getByText(henle.question)).toBeInTheDocument();
+      expect(log.getByText(acids.question)).toBeInTheDocument();
+      expect(log.getByText('Who won the cricket world cup?')).toBeInTheDocument();
+    });
+
+    it('shows Physics suggestions when there are no Physics questions yet, and asks them as Physics', async () => {
+      chat.history.mockResolvedValue([answered({ subjectId: 'biology' })]);
+      chat.ask.mockResolvedValue(answered({ id: 'p1', subjectId: 'physics' }));
+      openChat();
+
+      await userEvent.click(within(await screen.findByRole('group', { name: 'Subject' })).getByRole('button', { name: 'Physics' }));
+      expect(screen.getByRole('heading', { name: 'No Physics questions yet' })).toBeInTheDocument();
+      const buttons = within(screen.getByRole('list', { name: 'Example questions' })).getAllByRole('button');
+      expect(buttons).toHaveLength(3);
+      for (const b of buttons) expect(SUGGESTION_POOL.physics).toContain(b.textContent);
+
+      await userEvent.click(buttons[0]);
+      expect(chat.ask).toHaveBeenCalledWith(buttons[0].textContent, 'physics');
+    });
+
+    it('keeps suggestions for the selected subject above the question box once there are questions', async () => {
+      chat.history.mockResolvedValue([answered({ subjectId: 'chemistry' })]);
+      chat.ask.mockResolvedValue(answered({ id: 'c2', subjectId: 'chemistry' }));
+      openChat();
+
+      await userEvent.click(within(await screen.findByRole('group', { name: 'Subject' })).getByRole('button', { name: 'Chemistry' }));
+      const buttons = within(screen.getByRole('list', { name: 'Suggested questions' })).getAllByRole('button');
+      expect(buttons).toHaveLength(3);
+      for (const b of buttons) expect(SUGGESTION_POOL.chemistry).toContain(b.textContent);
+
+      const picked = buttons[1].textContent;
+      await userEvent.click(buttons[1]);
+      expect(chat.ask).toHaveBeenCalledWith(picked, 'chemistry');
+    });
   });
 
   describe('citations', () => {
+    it('on wide screens a [n] mark selects that answer for the Sources panel instead of opening a dialog', async () => {
+      const wide = vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true } as MediaQueryList);
+      const first = answered({ id: 'a1', question: 'What is osmosis?' });
+      const second = answered({
+        id: 'a2',
+        question: 'What is the pH scale?',
+        answer: 'It runs from 0 to 14 [1].',
+        citations: [{ source: 'STBB_Chemistry_X.pdf', page: 28, snippet: 'The pH scale runs from 0 to 14.' }],
+      });
+      chat.history.mockResolvedValue([first, second]);
+      openChat();
+
+      // By default the panel shows the newest cited answer
+      const panel = await screen.findByRole('complementary', { name: 'Sources of the selected answer' });
+      expect(within(panel).getByText('What is the pH scale?')).toBeInTheDocument();
+
+      const firstAnswer = (await screen.findAllByRole('article', { name: 'Answer' }))[0];
+      await userEvent.click(within(firstAnswer).getByRole('button', { name: 'Source 2: MDCAT syllabus, page 12' }));
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(within(panel).getByText('What is osmosis?')).toBeInTheDocument();
+      const current = within(panel).getAllByRole('button').find((b) => b.getAttribute('aria-current') === 'true');
+      expect(current).toHaveTextContent('MDCAT syllabus');
+
+      // A source in the panel opens the full citation
+      await userEvent.click(current!);
+      expect(screen.getByRole('dialog', { name: 'MDCAT syllabus' })).toBeInTheDocument();
+      wide.mockRestore();
+    });
+
     it('opens the citation panel from a [n] mark, with source, page and full snippet', async () => {
       chat.history.mockResolvedValue([answered()]);
       openChat();
@@ -211,11 +305,16 @@ describe('Chat page', () => {
 
     it('sends an example question when clicked', async () => {
       chat.history.mockResolvedValue([]);
-      chat.ask.mockResolvedValue(answered({ question: EXAMPLE_QUESTIONS[0] }));
+      chat.ask.mockResolvedValue(answered());
       openChat();
 
-      await userEvent.click(await screen.findByRole('button', { name: EXAMPLE_QUESTIONS[0] }));
-      expect(chat.ask).toHaveBeenCalledWith(EXAMPLE_QUESTIONS[0], null);
+      const examples = await screen.findByRole('list', { name: 'Example questions' });
+      const buttons = within(examples).getAllByRole('button');
+      expect(buttons).toHaveLength(3); // one per subject under All
+      const first = buttons[0].textContent ?? '';
+      expect(SUGGESTION_POOL.biology).toContain(first);
+      await userEvent.click(buttons[0]);
+      expect(chat.ask).toHaveBeenCalledWith(first, null);
     });
   });
 
@@ -254,7 +353,7 @@ describe('Chat page', () => {
       openChat();
 
       await userEvent.type(await screen.findByLabelText('Your question'), 'What is osmosis?{Enter}');
-      expect(await screen.findByRole('heading', { name: /log in/i })).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
       expect(screen.getByRole('status')).toHaveTextContent('Your session has expired. Please log in again.');
       expect(tokenStorage.get()).toBeNull();
     });

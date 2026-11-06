@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { chatApi, USE_MOCK } from '../api/chat';
-import { ChatMessage, SubjectFilter, SubjectId } from '../api/chatTypes';
+import { ChatMessage, SUBJECT_OPTIONS, SubjectFilter, SubjectId } from '../api/chatTypes';
 import { getErrorMessage, httpStatus, isTimeout } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { ChatComposer, SubjectPills } from '../components/chat/ChatComposer';
@@ -13,15 +13,15 @@ import {
   TypingIndicator,
 } from '../components/chat/ChatMessageView';
 import { CitationPanel } from '../components/chat/CitationPanel';
+import { SourcesPanel } from '../components/chat/SourcesPanel';
 import { Button } from '../components/ui/Button';
 import { EmptyState } from '../components/ui/EmptyState';
+import { matchesFilter } from '../lib/chatSubjects';
+import { pickSuggestions } from '../lib/suggestions';
 import styles from './ChatPage.module.css';
 
-export const EXAMPLE_QUESTIONS = [
-  'What is the function of the loop of Henle?',
-  'What is a limiting reactant?',
-  'Why does taking more readings reduce uncertainty?',
-];
+/** From this width the Sources panel sits next to the conversation (matches SourcesPanel.module.css). */
+const WIDE_SCREEN = '(min-width: 1100px)';
 
 export const SERVICE_DOWN = "Sorry, I can't reach the answer service right now. Please try again in a moment.";
 export const TIMED_OUT = 'Sorry, that took too long to answer. Please try again.';
@@ -52,10 +52,13 @@ export function ChatPage() {
   const [historyState, setHistoryState] = useState<HistoryState>('loading');
   const [historyError, setHistoryError] = useState('');
   const [filter, setFilter] = useState<SubjectFilter>('all');
+  const [seed] = useState(() => Math.random()); // one per page visit: the chips stay still while you use the page
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState<Question | null>(null);
   const [failed, setFailed] = useState<(Question & { message: string }) | null>(null);
   const [openCitation, setOpenCitation] = useState<OpenCitation | null>(null);
+  // Wide screens: which answer the Sources panel shows, and which of its [n] is highlighted
+  const [selected, setSelected] = useState<{ id: string; number: number | null } | null>(null);
   const citationTrigger = useRef<HTMLElement | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -109,6 +112,7 @@ export function ChatPage() {
     setFailed(null);
     setDraft('');
     setPending({ question: text, subjectId });
+    setSelected(null); // the new answer's sources show once it arrives
     try {
       const answered = await chatApi.ask(text, subjectId);
       setMessages((previous) => [...previous, answered]);
@@ -130,12 +134,36 @@ export function ChatPage() {
     setOpenCitation(open);
   };
 
+  /**
+   * A [n] mark in an answer. Wide screens: select that answer for the Sources panel and highlight [n]
+   * (the panel is right there). Narrower screens: open the citation panel, as before.
+   */
+  const markHandler =
+    (messageId: string): OpenCitationHandler =>
+    (open, trigger) => {
+      if (window.matchMedia?.(WIDE_SCREEN).matches) setSelected({ id: messageId, number: open.number });
+      else openPanel(open, trigger);
+    };
+
   const closePanel = useCallback(() => {
     setOpenCitation(null);
     citationTrigger.current?.focus(); // back to the mark or row that opened it
   }, []);
 
-  const showEmptyState = historyState === 'ready' && messages.length === 0 && !pending && !failed;
+  // The subject pills filter the conversation too (lib/chatSubjects.ts decides each message's subject)
+  const visible = messages.filter((m) => matchesFilter(m, filter));
+  // The Sources panel: the selected answer if it is still on screen, otherwise the newest cited one
+  const cited = visible.filter((m) => !m.refused && m.citations.length > 0);
+  const shownSources = cited.find((m) => m.id === selected?.id) ?? cited[cited.length - 1] ?? null;
+  const highlighted = shownSources && shownSources.id === selected?.id ? selected.number : null;
+  // Suggested questions: a new random set each time the page opens (seed), minus the ones already asked
+  const suggestions = useMemo(
+    () => pickSuggestions(filter, seed, messages.map((m) => m.question)),
+    [filter, seed, messages],
+  );
+  const subjectLabel = SUBJECT_OPTIONS.find((o) => o.value === filter)?.label ?? '';
+  const showEmptyState = historyState === 'ready' && visible.length === 0 && !pending && !failed;
+  const showSuggestionRow = historyState === 'ready' && visible.length > 0;
 
   return (
     <section className={styles.chat} aria-labelledby="chat-title">
@@ -145,66 +173,93 @@ export function ChatPage() {
             Ask the syllabus
           </h1>
           <p className={styles.subtitle}>
-            Answers come only from your MDCAT material.
+            Answers come only from your MDCAT books, with page references.
             {USE_MOCK && <span className={styles.devTag}>Dev: mock API</span>}
           </p>
         </div>
         <SubjectPills value={filter} onChange={setFilter} />
       </header>
 
-      <div className={styles.log} role="log" aria-label="Conversation">
-        {historyState === 'loading' && (
-          <p className={styles.muted} role="status">
-            Loading your previous questions...
-          </p>
-        )}
+      <div className={styles.body}>
+        <div className={styles.log} role="log" aria-label="Conversation">
+          {historyState === 'loading' && (
+            <p className={styles.muted} role="status">
+              Loading your previous questions...
+            </p>
+          )}
 
-        {historyState === 'error' && (
-          <div className={styles.historyError} role="alert">
-            <span>{historyError}</span>
-            <Button variant="outline" onClick={() => void loadHistory()}>
-              Try again
-            </Button>
-          </div>
-        )}
+          {historyState === 'error' && (
+            <div className={styles.historyError} role="alert">
+              <span>{historyError}</span>
+              <Button variant="outline" onClick={() => void loadHistory()}>
+                Try again
+              </Button>
+            </div>
+          )}
 
-        {showEmptyState && (
-          <EmptyState title="Ask your first question" description="Every answer shows the book and page it came from. Try one of these:">
-            <ul className={styles.examples} aria-label="Example questions">
-              {EXAMPLE_QUESTIONS.map((q) => (
+          {showEmptyState && (
+            <EmptyState
+              title={messages.length === 0 ? 'Ask your first question' : `No ${subjectLabel} questions yet`}
+              description={
+                messages.length === 0
+                  ? 'Every answer shows the book and page it came from. Try one of these:'
+                  : 'Your other questions are under All. Try one of these:'
+              }
+            >
+              <ul className={styles.examples} aria-label="Example questions">
+                {suggestions.map((q) => (
+                  <li key={q}>
+                    <button type="button" className={styles.example} onClick={() => askWithFilter(q)}>
+                      {q}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </EmptyState>
+          )}
+
+          {visible.map((m) => (
+            <ChatMessageView key={m.id} message={m} onOpenCitation={markHandler(m.id)} active={m.id === shownSources?.id} />
+          ))}
+
+          {pending && (
+            <div className={styles.exchange}>
+              <QuestionBubble text={pending.question} subjectId={pending.subjectId} />
+              <TypingIndicator />
+            </div>
+          )}
+
+          {failed && (
+            <div className={styles.exchange}>
+              <QuestionBubble text={failed.question} subjectId={failed.subjectId} />
+              <ErrorBubble message={failed.message} onRetry={() => void ask(failed)} />
+            </div>
+          )}
+          <div ref={endRef} />
+        </div>
+        <SourcesPanel message={shownSources} highlighted={highlighted} onOpen={openPanel} />
+      </div>
+
+      {/* Pinned to the bottom of the screen while the conversation scrolls under it */}
+      <div className={styles.footer}>
+        {showSuggestionRow && (
+          <div className={styles.suggestions}>
+            <span className={styles.suggestionsLabel}>Try:</span>
+            <ul aria-label="Suggested questions">
+              {suggestions.map((q) => (
                 <li key={q}>
-                  <button type="button" className={styles.example} onClick={() => askWithFilter(q)}>
+                  <button type="button" className={styles.suggestion} disabled={pending !== null} onClick={() => askWithFilter(q)}>
                     {q}
                   </button>
                 </li>
               ))}
             </ul>
-          </EmptyState>
-        )}
-
-        {messages.map((m) => (
-          <ChatMessageView key={m.id} message={m} onOpenCitation={openPanel} />
-        ))}
-
-        {pending && (
-          <div className={styles.exchange}>
-            <QuestionBubble text={pending.question} subjectId={pending.subjectId} />
-            <TypingIndicator />
           </div>
         )}
-
-        {failed && (
-          <div className={styles.exchange}>
-            <QuestionBubble text={failed.question} subjectId={failed.subjectId} />
-            <ErrorBubble message={failed.message} onRetry={() => void ask(failed)} />
-          </div>
-        )}
-        <div ref={endRef} />
-      </div>
-
-      {/* Pinned to the bottom of the screen while the conversation scrolls under it */}
-      <div className={styles.footer}>
-        <ChatComposer draft={draft} disabled={pending !== null} onDraftChange={setDraft} onSend={() => askWithFilter(draft)} />
+        <ChatComposer
+          draft={draft}
+          placeholder={filter === 'all' ? undefined : `Ask a ${subjectLabel} question`}
+          disabled={pending !== null} onDraftChange={setDraft} onSend={() => askWithFilter(draft)} />
       </div>
 
       <CitationPanel open={openCitation} onClose={closePanel} />

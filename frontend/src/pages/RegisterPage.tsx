@@ -4,6 +4,7 @@ import { getErrorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/ui/Button';
 import { emailProblem, nameProblem, PASSWORD_HINT, passwordProblem } from '../lib/validation';
+import { AuthLayout } from '../components/layout/AuthLayout';
 import styles from './AuthPage.module.css';
 import { VerifyOtpState } from './VerifyOtpPage';
 
@@ -50,64 +51,62 @@ export function RegisterPage() {
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.card}>
-        <p className={styles.wordmark}>MedPrep AI</p>
-        <h1 className={styles.title}>Create your account</h1>
-        {notice && (
-          <p className={styles.notice} role="status">
-            {notice}
+    <AuthLayout showSwitch>
+      <h1 className={styles.title}>Create your account</h1>
+      <p className={styles.subtitle}>We will email you a 6-digit code to confirm your address.</p>
+      {notice && (
+        <p className={styles.notice} role="status">
+          {notice}
+        </p>
+      )}
+      <form className={styles.form} onSubmit={handleSubmit} noValidate>
+        <label className={styles.field}>
+          Name
+          <input className={styles.input} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+        </label>
+        <label className={styles.field}>
+          Email
+          <input
+            className={styles.input}
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+          />
+        </label>
+        <label className={styles.field}>
+          Password
+          <input
+            className={styles.input}
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+          />
+        </label>
+        <label className={styles.field}>
+          Confirm password
+          <input
+            className={styles.input}
+            type="password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            autoComplete="new-password"
+          />
+        </label>
+        <p className={styles.hint}>{PASSWORD_HINT}</p>
+        {error && (
+          <p className={styles.error} role="alert">
+            {error}
           </p>
         )}
-        <form className={styles.form} onSubmit={handleSubmit} noValidate>
-          <label className={styles.field}>
-            Name
-            <input className={styles.input} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
-          </label>
-          <label className={styles.field}>
-            Email
-            <input
-              className={styles.input}
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-            />
-          </label>
-          <label className={styles.field}>
-            Password
-            <input
-              className={styles.input}
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="new-password"
-            />
-          </label>
-          <label className={styles.field}>
-            Confirm password
-            <input
-              className={styles.input}
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              autoComplete="new-password"
-            />
-          </label>
-          <p className={styles.hint}>{PASSWORD_HINT}</p>
-          {error && (
-            <p className={styles.error} role="alert">
-              {error}
-            </p>
-          )}
-          <Button type="submit" block disabled={submitting}>
-            {submitting ? 'Creating account...' : 'Register'}
-          </Button>
-        </form>
-        <p className={styles.footer}>
-          Already registered? <Link to="/login">Log in</Link>
-        </p>
-      </div>
-    </div>
+        <Button type="submit" block disabled={submitting}>
+          {submitting ? 'Creating account...' : 'Create account'}
+        </Button>
+      </form>
+      <p className={styles.footer}>
+        Already have an account? <Link to="/login">Log in</Link>
+      </p>
+    </AuthLayout>
   );
 }

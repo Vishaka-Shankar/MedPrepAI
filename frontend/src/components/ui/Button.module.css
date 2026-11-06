@@ -5,7 +5,7 @@
   gap: var(--space-2);
   min-height: 44px; /* comfortable touch target */
   padding: 0 var(--space-5);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   border: 1px solid transparent;
   font-weight: 600;
   font-size: 0.95rem;
@@ -27,13 +27,15 @@
   background: var(--color-primary-hover);
 }
 
+/* Secondary action: white with a grey border and dark text (direction A) */
 .outline {
   background: var(--color-surface);
-  color: var(--color-primary);
-  border-color: var(--color-primary);
+  color: var(--color-text);
+  border-color: var(--color-border);
 }
 .outline:hover:not(:disabled) {
-  background: var(--color-teal-soft-bg);
+  background: var(--color-surface-soft);
+  border-color: #b8c2d1;
 }
 
 .danger {

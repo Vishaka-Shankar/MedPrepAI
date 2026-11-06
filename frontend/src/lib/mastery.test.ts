@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { MOCK_DASHBOARD } from '../mocks/dashboard';
 import { TopicStat } from '../types/dashboard';
-import { hasEnoughData, masteryTone, priority, priorityReason, topPriorities } from './mastery';
+import {
+  hasEnoughData,
+  masteryTone,
+  priority,
+  priorityReason,
+  rankedTopics,
+  strongestTopic,
+  subjectAverages,
+  topPriorities,
+  unrankedTopics,
+  weakTopics,
+} from './mastery';
 
 const topic = (name: string, weightage: number, mastery: number, attempts = 10): TopicStat => ({
   subject: 'Biology',
@@ -75,5 +86,42 @@ describe('priority P = weightage x (1 - mastery)', () => {
   it('explains a priority in one line', () => {
     expect(priorityReason(topic('x', 0.03, 0.4))).toBe('Heavily tested, mastery low');
     expect(priorityReason(topic('y', 0.02, 0.45))).toBe('Moderately tested, mastery low');
+  });
+});
+
+describe('dashboard summaries', () => {
+  const t = (subject: TopicStat['subject'], name: string, weightage: number, mastery: number, attempts: number): TopicStat => ({
+    subject,
+    name,
+    weightage,
+    mastery,
+    attempts,
+  });
+  const topics = [
+    t('Biology', 'Cell biology', 0.03, 0.4, 18),
+    t('Biology', 'Genetics', 0.03, 0.5, 2), // too few attempts
+    t('Biology', 'Enzymes', 0.03, 0.72, 12),
+    t('Chemistry', 'Equilibrium', 0.025, 0.35, 14),
+    t('Chemistry', 'Atomic structure', 0.02, 0.8, 10),
+  ];
+
+  it('ranks every topic with enough data by priority and lists the rest separately', () => {
+    expect(rankedTopics(topics).map((x) => x.name)).toEqual(['Cell biology', 'Equilibrium', 'Enzymes', 'Atomic structure']);
+    expect(unrankedTopics(topics).map((x) => x.name)).toEqual(['Genetics']);
+  });
+
+  it('counts weak topics and finds the strongest one', () => {
+    expect(weakTopics(topics).map((x) => x.name)).toEqual(['Cell biology', 'Equilibrium']);
+    expect(strongestTopic(topics)?.name).toBe('Atomic structure');
+    expect(strongestTopic([])).toBeNull();
+  });
+
+  it('averages mastery per subject over its ranked topics only', () => {
+    const [bio, chem] = subjectAverages(topics);
+    expect(bio.subject).toBe('Biology');
+    expect(bio.mastery).toBeCloseTo(0.56); // (0.40 + 0.72) / 2, Genetics left out
+    expect(bio.topics).toBe(2);
+    expect(chem.mastery).toBeCloseTo(0.575);
+    expect(subjectAverages(topics)).toHaveLength(2); // no Physics topics: left out
   });
 });

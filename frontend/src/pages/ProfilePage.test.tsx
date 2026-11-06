@@ -145,7 +145,7 @@ describe('Change password', () => {
 
     await fill(user, 'secret123', 'brandnew9');
 
-    expect(await screen.findByRole('heading', { name: 'Log in to MedPrep AI' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(reason);
     expect(tokenStorage.get()).toBeNull();
   });

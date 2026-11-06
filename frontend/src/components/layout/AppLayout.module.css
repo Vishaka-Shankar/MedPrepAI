@@ -15,19 +15,14 @@
   color: var(--color-sidebar-text);
 }
 
-.wordmark {
-  font-weight: 700;
-  font-size: 1.15rem;
-  color: #ffffff;
-}
-.sidebarWordmark {
-  padding: var(--space-1) var(--space-3) var(--space-6);
+.sidebarLogo {
+  padding: var(--space-1) var(--space-2) var(--space-6);
 }
 
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 
 .navItem {
@@ -36,7 +31,8 @@
   border-radius: 8px;
   color: var(--color-sidebar-text);
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 .navItem:hover {
   background: rgb(255 255 255 / 0.06);
@@ -46,6 +42,7 @@
 .active:hover {
   background: var(--color-sidebar-active);
   color: #ffffff;
+  font-weight: 600;
 }
 
 /* Focus rings must stand out on navy */
@@ -54,24 +51,56 @@
   outline-color: var(--color-focus-on-dark);
 }
 
+/* The user's initial, name, and Profile · Log out, pinned to the bottom */
 .sidebarFooter {
-  margin-top: auto; /* pins Log out to the bottom */
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: var(--space-3) var(--space-2) 0;
+  border-top: 1px solid #1d3a63;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--color-sidebar-active);
+  color: #ffffff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.footerText {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: 0 var(--space-3);
+  gap: 2px;
 }
 
 .userName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.footerLinks {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.8rem;
-  color: #9fb0c6;
+  color: #a9b8cf;
 }
 
 .footerLink {
-  display: inline-block;
-  padding: var(--space-1) 0;
-  color: var(--color-sidebar-text);
-  font-size: 0.95rem;
+  color: #a9b8cf;
   text-decoration: none;
 }
 .footerLink:hover {
@@ -84,12 +113,11 @@
 }
 
 .logout {
-  align-self: flex-start;
-  padding: var(--space-1) 0;
+  padding: 0;
   border: none;
   background: none;
-  color: var(--color-sidebar-text);
-  font-size: 0.95rem;
+  color: #a9b8cf;
+  font-size: 0.8rem;
   cursor: pointer;
 }
 .logout:hover {
@@ -108,7 +136,7 @@
   max-width: var(--content-max);
   min-height: 100%;
   margin: 0 auto;
-  padding: var(--space-6) var(--space-7);
+  padding: 28px var(--space-6) var(--space-6);
   display: flex;
   flex-direction: column;
 }
@@ -139,6 +167,11 @@
     flex-direction: column;
   }
 
+  .mobileHeader .logout {
+    font-size: 0.95rem;
+    color: var(--color-sidebar-text);
+  }
+
   .mobileHeader {
     display: flex;
     align-items: center;
@@ -162,7 +195,7 @@
     padding: 6px var(--space-2) calc(6px + env(safe-area-inset-bottom));
   }
 
-  .sidebarWordmark,
+  .sidebarLogo,
   .sidebarFooter {
     display: none;
   }

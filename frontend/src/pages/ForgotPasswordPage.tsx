@@ -8,6 +8,7 @@ import { TextField } from '../components/ui/TextField';
 import { useCountdown } from '../hooks/useCountdown';
 import { describeCodeError } from '../lib/otpErrors';
 import { emailProblem, isCompleteCode, PASSWORD_HINT, passwordProblem } from '../lib/validation';
+import { AuthLayout } from '../components/layout/AuthLayout';
 import styles from './AuthPage.module.css';
 import { CODE_VALID_MINUTES, RESEND_COOLDOWN_SECONDS } from './VerifyOtpPage';
 
@@ -109,81 +110,78 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.card}>
-        <p className={styles.wordmark}>MedPrep AI</p>
-        <h1 className={styles.title}>Reset your password</h1>
-        {notice && (
-          <p className={styles.notice} role="status">
-            {notice}
-          </p>
-        )}
-
-        {step === 'email' ? (
-          <form className={styles.form} onSubmit={handleEmailSubmit} noValidate>
-            <p className={styles.lead}>Enter your account's email and we will send you a 6-digit code.</p>
-            <TextField
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              error={emailError}
-              autoComplete="email"
-              autoFocus
-            />
-            {error && (
-              <p className={styles.error} role="alert">
-                {error}
-              </p>
-            )}
-            <Button type="submit" block disabled={busy || !email.trim()}>
-              {busy ? 'Sending...' : 'Send code'}
-            </Button>
-          </form>
-        ) : (
-          <form className={styles.form} onSubmit={handleResetSubmit} noValidate>
-            <p className={styles.lead}>
-              If <strong>{email.trim()}</strong> has an account, enter the code we sent there and choose a new password.
-            </p>
-            <OtpInput key={inputKey} value={digits} onChange={setDigits} disabled={busy} invalid={!!error} />
-            <p className={styles.hint}>
-              The code expires {CODE_VALID_MINUTES} minutes after it is sent. Can't find it? Check your spam folder.
-            </p>
-            <TextField
-              label="New password"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              hint={PASSWORD_HINT}
-              error={passwordError}
-              autoComplete="new-password"
-            />
-            <TextField
-              label="Confirm new password"
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              error={confirmError}
-              autoComplete="new-password"
-            />
-            {error && (
-              <p className={styles.error} role="alert">
-                {error}
-              </p>
-            )}
-            <Button type="submit" block disabled={busy || !isCompleteCode(code) || !newPassword || !confirm}>
-              {busy ? 'Resetting...' : 'Reset password'}
-            </Button>
-            <Button variant="outline" block onClick={handleResend} disabled={sending || busy || secondsLeft > 0}>
-              {sending ? 'Sending...' : secondsLeft > 0 ? `Send a new code (${secondsLeft}s)` : 'Send a new code'}
-            </Button>
-          </form>
-        )}
-
-        <p className={styles.footer}>
-          Remembered it? <Link to="/login">Back to log in</Link>
+    <AuthLayout>
+      <h1 className={styles.title}>Reset your password</h1>
+      {notice && (
+        <p className={styles.notice} role="status">
+          {notice}
         </p>
-      </div>
-    </div>
+      )}
+
+      {step === 'email' ? (
+        <form className={styles.form} onSubmit={handleEmailSubmit} noValidate>
+          <p className={styles.lead}>Enter your account's email and we will send you a 6-digit code.</p>
+          <TextField
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={emailError}
+            autoComplete="email"
+            autoFocus
+          />
+          {error && (
+            <p className={styles.error} role="alert">
+              {error}
+            </p>
+          )}
+          <Button type="submit" block disabled={busy || !email.trim()}>
+            {busy ? 'Sending...' : 'Send code'}
+          </Button>
+        </form>
+      ) : (
+        <form className={styles.form} onSubmit={handleResetSubmit} noValidate>
+          <p className={styles.lead}>
+            If <strong>{email.trim()}</strong> has an account, enter the code we sent there and choose a new password.
+          </p>
+          <OtpInput key={inputKey} value={digits} onChange={setDigits} disabled={busy} invalid={!!error} />
+          <p className={styles.hint}>
+            The code expires {CODE_VALID_MINUTES} minutes after it is sent. Can't find it? Check your spam folder.
+          </p>
+          <TextField
+            label="New password"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            hint={PASSWORD_HINT}
+            error={passwordError}
+            autoComplete="new-password"
+          />
+          <TextField
+            label="Confirm new password"
+            type="password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            error={confirmError}
+            autoComplete="new-password"
+          />
+          {error && (
+            <p className={styles.error} role="alert">
+              {error}
+            </p>
+          )}
+          <Button type="submit" block disabled={busy || !isCompleteCode(code) || !newPassword || !confirm}>
+            {busy ? 'Resetting...' : 'Reset password'}
+          </Button>
+          <Button variant="outline" block onClick={handleResend} disabled={sending || busy || secondsLeft > 0}>
+            {sending ? 'Sending...' : secondsLeft > 0 ? `Send a new code (${secondsLeft}s)` : 'Send a new code'}
+          </Button>
+        </form>
+      )}
+
+      <p className={styles.footer}>
+        Remembered it? <Link to="/login">Back to log in</Link>
+      </p>
+    </AuthLayout>
   );
 }

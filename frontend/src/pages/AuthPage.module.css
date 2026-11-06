@@ -1,30 +1,16 @@
-/* Shared by LoginPage, RegisterPage, VerifyOtpPage and ForgotPasswordPage: a centred white card on the light background */
-.page {
-  min-height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-5) var(--space-4);
-}
-
-.card {
-  width: 100%;
-  max-width: 420px;
-  padding: var(--space-6);
-  background: var(--color-surface);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-}
-
-.wordmark {
-  margin: 0 0 var(--space-2);
-  font-weight: 700;
-  color: var(--color-primary);
-}
-
+/* Shared by LoginPage, RegisterPage, VerifyOtpPage and ForgotPasswordPage.
+   The frame (brand panel + form column) is components/layout/AuthLayout. */
 .title {
-  font-size: 1.5rem;
-  margin-bottom: var(--space-5);
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin-bottom: var(--space-2);
+}
+
+.subtitle {
+  margin: 0 0 var(--space-6);
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
 }
 
 .form {
@@ -38,11 +24,28 @@
   flex-direction: column;
   gap: 6px;
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
+}
+
+/* "Password" with "Forgot password?" on the right */
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.labelLink {
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.labelLink:hover {
+  text-decoration: underline;
 }
 
 .input {
-  padding: 11px 14px;
+  min-height: 46px;
+  padding: 0 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);
   background: var(--color-surface);
@@ -93,4 +96,9 @@
   text-align: center;
   font-size: 0.9rem;
   color: var(--color-text-muted);
+}
+
+/* Pages without a subtitle (verify email, reset password): keep the gap under the title */
+.title + :not(.subtitle) {
+  margin-top: var(--space-5);
 }

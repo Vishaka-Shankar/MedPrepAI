@@ -74,7 +74,7 @@ describe('Forgot password', () => {
     await fillReset(user, '123456');
 
     expect(mocked.resetPassword).toHaveBeenCalledWith({ email: 'Ayesha@Example.com', code: '123456', newPassword: 'brandnew9' });
-    expect(await screen.findByRole('heading', { name: 'Log in to MedPrep AI' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(RESET_DONE);
     expect(screen.getByLabelText('Email')).toHaveValue('ayesha@example.com');
   });
@@ -122,7 +122,7 @@ describe('Forgot password', () => {
     expect(screen.getByLabelText('Digit 6 of 6')).toHaveValue('6');
 
     await user.click(screen.getByRole('button', { name: 'Reset password' }));
-    expect(await screen.findByRole('heading', { name: 'Log in to MedPrep AI' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
   });
 
   it('429 on "Send code" becomes a friendly sentence and the button works again', async () => {

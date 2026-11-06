@@ -7,6 +7,7 @@ import { emptyCode, OtpInput } from '../components/ui/OtpInput';
 import { useCountdown } from '../hooks/useCountdown';
 import { describeCodeError } from '../lib/otpErrors';
 import { isCompleteCode } from '../lib/validation';
+import { AuthLayout } from '../components/layout/AuthLayout';
 import styles from './AuthPage.module.css';
 
 /** Same numbers as the backend (otp.service.ts). */
@@ -82,55 +83,49 @@ export function VerifyOtpPage() {
   if (!email) {
     // Opened directly (e.g. a bookmark): we don't know which account to verify
     return (
-      <div className={styles.page}>
-        <div className={styles.card}>
-          <p className={styles.wordmark}>MedPrep AI</p>
-          <h1 className={styles.title}>Verify your email</h1>
-          <p className={styles.hint}>
-            Log in with your email and password and we will send you a new code.
-          </p>
-          <p className={styles.footer}>
-            <Link to="/login">Log in</Link> or <Link to="/register">Register</Link>
-          </p>
-        </div>
-      </div>
+      <AuthLayout>
+        <h1 className={styles.title}>Verify your email</h1>
+        <p className={styles.hint}>
+          Log in with your email and password and we will send you a new code.
+        </p>
+        <p className={styles.footer}>
+          <Link to="/login">Log in</Link> or <Link to="/register">Register</Link>
+        </p>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.card}>
-        <p className={styles.wordmark}>MedPrep AI</p>
-        <h1 className={styles.title}>Verify your email</h1>
-        {notice && (
-          <p className={styles.notice} role="status">
-            {notice}
+    <AuthLayout>
+      <h1 className={styles.title}>Verify your email</h1>
+      {notice && (
+        <p className={styles.notice} role="status">
+          {notice}
+        </p>
+      )}
+      <form className={styles.form} onSubmit={handleSubmit} noValidate>
+        <p className={styles.lead}>
+          Enter the 6-digit code we sent to <strong>{email}</strong>.
+        </p>
+        <OtpInput key={inputKey} value={digits} onChange={setDigits} disabled={submitting} invalid={!!error} />
+        <p className={styles.hint}>
+          The code expires {CODE_VALID_MINUTES} minutes after it is sent. Can't find it? Check your spam folder.
+        </p>
+        {error && (
+          <p className={styles.error} role="alert">
+            {error}
           </p>
         )}
-        <form className={styles.form} onSubmit={handleSubmit} noValidate>
-          <p className={styles.lead}>
-            Enter the 6-digit code we sent to <strong>{email}</strong>.
-          </p>
-          <OtpInput key={inputKey} value={digits} onChange={setDigits} disabled={submitting} invalid={!!error} />
-          <p className={styles.hint}>
-            The code expires {CODE_VALID_MINUTES} minutes after it is sent. Can't find it? Check your spam folder.
-          </p>
-          {error && (
-            <p className={styles.error} role="alert">
-              {error}
-            </p>
-          )}
-          <Button type="submit" block disabled={submitting || !complete}>
-            {submitting ? 'Verifying...' : 'Verify'}
-          </Button>
-          <Button variant="outline" block onClick={handleResend} disabled={resending || secondsLeft > 0}>
-            {resending ? 'Sending...' : secondsLeft > 0 ? `Resend code (${secondsLeft}s)` : 'Resend code'}
-          </Button>
-        </form>
-        <p className={styles.footer}>
-          Wrong email? <Link to="/register">Register again</Link>
-        </p>
-      </div>
-    </div>
+        <Button type="submit" block disabled={submitting || !complete}>
+          {submitting ? 'Verifying...' : 'Verify'}
+        </Button>
+        <Button variant="outline" block onClick={handleResend} disabled={resending || secondsLeft > 0}>
+          {resending ? 'Sending...' : secondsLeft > 0 ? `Resend code (${secondsLeft}s)` : 'Resend code'}
+        </Button>
+      </form>
+      <p className={styles.footer}>
+        Wrong email? <Link to="/register">Register again</Link>
+      </p>
+    </AuthLayout>
   );
 }

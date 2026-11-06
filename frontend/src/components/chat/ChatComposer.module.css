@@ -1,7 +1,31 @@
-.pills {
+/* Subject filter: buttons on one grey track; the selected one is a white tab */
+.segments {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  padding: 3px;
+  border-radius: var(--radius-control);
+  background: var(--color-surface-muted);
+}
+.segment {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.segment:hover {
+  color: var(--color-text);
+}
+.segmentOn,
+.segmentOn:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(15 31 61 / 0.12);
 }
 
 .composer {
@@ -16,23 +40,35 @@
   color: var(--color-text-muted);
 }
 
+/* One white card around the text box and the button */
 .row {
   display: flex;
   gap: var(--space-3);
   align-items: flex-end;
+  padding: 6px 6px 6px 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-raised);
+}
+.row:focus-within {
+  border-color: var(--color-primary);
 }
 
 .input {
   flex: 1;
-  min-height: 48px;
-  padding: 12px 20px;
-  border: 1px solid var(--color-border);
-  border-radius: 24px;
-  background: var(--color-surface);
+  min-height: 44px;
+  padding: 11px 14px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
   color: var(--color-text);
   font-size: 1rem;
   line-height: 1.4;
   resize: none;
+}
+.input:focus-visible {
+  outline: none; /* the card's border shows focus instead */
 }
 
 /* While empty, keep the placeholder on one line (it would be cut in half on a phone) */
@@ -43,5 +79,5 @@
 }
 
 .row button {
-  min-height: 48px;
+  min-height: 44px;
 }

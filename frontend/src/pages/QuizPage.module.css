@@ -1,43 +1,92 @@
 .quiz {
-  width: 100%;
-  max-width: 820px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
 }
 
-.topRow {
+/* ---------- Header card: topic, question count, timer, progress ---------- */
+.bar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
   flex-wrap: wrap;
-  gap: var(--space-3);
+  align-items: center;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-4) 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-card);
 }
 
-.tags {
+.barText {
+  margin-right: auto;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.context {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
 }
 
 .sample {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  margin-left: var(--space-1);
+  margin-left: var(--space-2);
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-amber-bg);
+  color: var(--color-amber-text);
+  font-size: 0.7rem;
+  font-weight: 600;
 }
 
 .counter {
-  margin: 0 0 6px;
-  font-size: 0.85rem;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.timer svg {
+  width: 16px;
+  height: 16px;
   color: var(--color-text-muted);
 }
 
+.progress {
+  flex-basis: 100%;
+}
+
+/* ---------- Question + navigator ---------- */
+.columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  align-items: flex-start;
+}
+
+.main {
+  flex: 999 1 480px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
 .stem {
-  font-size: 1.5rem;
-  font-weight: 400;
-  line-height: 1.35;
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .options {
@@ -46,64 +95,81 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--space-3);
 }
 
-/* An answer option: a real button that looks like a card */
 .option {
   width: 100%;
-  min-height: 64px;
+  min-height: 56px;
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: var(--space-4) 22px;
-  border: 2px solid transparent;
-  border-radius: var(--radius-control);
+  padding: 10px var(--space-4);
+  border: 1.5px solid var(--color-border);
+  border-radius: 12px;
   background: var(--color-surface);
-  box-shadow: var(--shadow-card);
   color: var(--color-text);
-  font-size: 1rem;
+  font-size: 0.95rem;
+  font-weight: 500;
   text-align: left;
   cursor: pointer;
 }
 .option:hover:not(:disabled) {
-  border-color: var(--color-border);
+  border-color: var(--color-primary);
 }
 .option:disabled {
   cursor: default;
 }
 
 .letter {
-  width: 1.2em;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-muted);
   color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.optionText {
+  flex: 1;
+}
+
+/* The words after answering: "Correct answer", "Your answer (incorrect)" */
+.note {
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .correct {
-  background: var(--color-correct-bg);
   border-color: var(--color-correct-border);
+  background: var(--color-correct-bg);
   color: var(--color-correct-text);
 }
 .correct .letter {
-  color: var(--color-correct-text);
+  background: var(--color-correct-border);
+  color: #ffffff;
 }
 
 .incorrect {
-  background: var(--color-incorrect-bg);
   border-color: var(--color-incorrect-border);
+  background: var(--color-incorrect-bg);
   color: var(--color-incorrect-text);
 }
 .incorrect .letter {
-  color: var(--color-incorrect-text);
+  background: var(--color-incorrect-border);
+  color: #ffffff;
 }
 
-.note {
-  font-weight: 400;
-}
-
-/* "Why" card: explanation on the left, revision video on the right */
+/* ---------- Explanation ---------- */
 .why {
   display: grid;
-  grid-template-columns: 1fr 240px;
+  grid-template-columns: 2fr 1fr;
   gap: var(--space-5);
 }
 
@@ -111,53 +177,71 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .whyTitle {
-  font-size: 1.05rem;
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
 .whyText {
   margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #3d4a61;
+}
+
+.source {
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-teal-soft-bg);
+  color: var(--color-teal-soft-text);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .video {
   padding-left: var(--space-5);
-  border-left: 1px solid var(--color-border);
+  border-left: 1px solid var(--color-surface-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .videoLabel {
-  margin: 0 0 var(--space-2);
-  font-size: 0.8rem;
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--color-text-muted);
 }
 
-/* A link must look like a link: teal and underlined (5.0:1 on white) */
 .videoTitle {
-  font-weight: 500;
-  color: var(--color-primary);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
 }
 .videoTitle:hover {
-  color: var(--color-primary-hover);
+  text-decoration: underline;
 }
 
 .videoMeta {
-  margin: 2px 0 0;
-  font-size: 0.8rem;
+  margin: 0;
+  font-size: 0.75rem;
   color: var(--color-text-muted);
 }
 
 .footer {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: var(--space-3);
 }
-
-.status {
-  color: var(--color-text-muted);
+.footerRight {
+  display: flex;
+  gap: var(--space-3);
 }
 
 .keyboardHint {
@@ -165,6 +249,121 @@
   font-size: 0.8rem;
   color: var(--color-text-muted);
   text-align: center;
+}
+
+/* ---------- Navigator ---------- */
+.navigator {
+  flex: 1 1 240px;
+  min-width: 0;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.navigatorHead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 2px var(--space-2);
+}
+
+.navigatorTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.navigatorScore {
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.step {
+  width: 100%;
+  aspect-ratio: 1;
+  min-height: 36px;
+  border-radius: 8px;
+  border: 1.5px solid #b8c2d1;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.step:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.step.right {
+  border-color: var(--color-correct-border);
+  background: var(--color-correct-border);
+  color: #ffffff;
+}
+.step.wrong {
+  border-color: var(--color-incorrect-border);
+  background: var(--color-incorrect-border);
+  color: #ffffff;
+}
+/* Skipped: dashed amber, still open to answer */
+.step.skipped {
+  border-style: dashed;
+  border-color: #b45309;
+  background: var(--color-amber-bg);
+  color: var(--color-amber-text);
+}
+.step.current {
+  outline: 2px solid var(--color-sidebar);
+  outline-offset: 2px;
+}
+
+.key {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+.key li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.swatch.right {
+  background: var(--color-correct-border);
+}
+.swatch.wrong {
+  background: var(--color-incorrect-border);
+}
+.swatch.skipped {
+  border: 1px dashed #b45309;
+  background: var(--color-amber-bg);
+}
+.swatch.todo {
+  border: 1px solid #b8c2d1;
+}
+
+/* ---------- Other states ---------- */
+.status {
+  color: var(--color-text-muted);
 }
 
 .result {
@@ -175,7 +374,7 @@
 
 @media (max-width: 767px) {
   .stem {
-    font-size: 1.2rem;
+    font-size: 1.15rem;
   }
   .why {
     grid-template-columns: 1fr;
@@ -183,6 +382,9 @@
   .video {
     padding: var(--space-4) 0 0;
     border-left: none;
-    border-top: 1px solid var(--color-border);
+    border-top: 1px solid var(--color-surface-muted);
+  }
+  .note {
+    white-space: normal;
   }
 }

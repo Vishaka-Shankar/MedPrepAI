@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { authApi } from '../api/auth';
@@ -30,39 +31,47 @@ describe('Dashboard page (mock data)', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^Good (morning|afternoon|evening), Ayesha Khan$/);
   });
 
-  it('shows the three top cards: next up, accuracy and topics practised', async () => {
+  it('shows the summary cards: accuracy, topics practised, weak topics, strongest topic', async () => {
     await openDashboard();
-    expect(screen.getByText('Practice Cell biology: your top priority topic')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Start 10 questions' })).toHaveAttribute('href', '/quiz');
-    expect(screen.getByRole('region', { name: 'Accuracy' })).toHaveTextContent('64%');
-    expect(screen.getByRole('region', { name: 'Accuracy' })).toHaveTextContent('128 attempts');
-    expect(screen.getByRole('region', { name: 'Topics practised' })).toHaveTextContent('14');
-    expect(screen.getByRole('region', { name: 'Topics practised' })).toHaveTextContent('across 3 subjects');
+    const card = (name: string) => screen.getByRole('region', { name });
+    expect(card('Accuracy')).toHaveTextContent('64%');
+    expect(card('Accuracy')).toHaveTextContent('82 of 128 answers correct');
+    expect(card('Topics practised')).toHaveTextContent('14');
+    expect(card('Topics practised')).toHaveTextContent('across 3 subjects');
+    expect(card('Weak topics')).toHaveTextContent('4'); // Cell biology, Equilibrium, Thermochemistry, Electrostatics
+    expect(card('Strongest topic')).toHaveTextContent('80%Atomic structure');
   });
 
-  it('colours mastery tiles by the helper and marks topics with too few attempts', async () => {
+  it('puts the top priority in the Next up card', async () => {
     await openDashboard();
-    const tiles = within(screen.getByRole('list', { name: 'Topics' })).getAllByRole('listitem');
-    const byName = (name: string) => tiles.find((t) => t.textContent?.startsWith(name))!;
-
-    expect(byName('Cell biology')).toHaveAttribute('data-tone', 'amber'); // 0.40
-    expect(byName('Bioenergetics')).toHaveAttribute('data-tone', 'light-teal'); // 0.55
-    expect(byName('Kinematics')).toHaveAttribute('data-tone', 'strong-teal'); // exactly 0.70
-    expect(byName('Genetics')).toHaveAttribute('data-tone', 'insufficient'); // 2 attempts
-    expect(byName('Genetics')).toHaveTextContent('Insufficient data');
-    expect(byName('Cell biology')).toHaveTextContent('0.40 mastery, Weak'); // words, not only colour
+    const next = screen.getByRole('region', { name: 'Next up' });
+    expect(within(next).getByRole('heading', { name: 'Cell biology' })).toBeInTheDocument();
+    expect(next).toHaveTextContent('Heavily tested in MDCAT, and your mastery is 40%.');
+    expect(within(next).getByRole('link', { name: 'Start 10 questions' })).toHaveAttribute('href', '/quiz');
+    expect(screen.getByRole('link', { name: 'Practise top 3 topics' })).toHaveAttribute('href', '/quiz');
   });
 
-  it('lists the top 3 study priorities computed from the data, with score and reason', async () => {
+  it('ranks topics in the priorities table with score, reason and mastery in words', async () => {
     await openDashboard();
-    const card = screen.getByRole('region', { name: 'Study priorities' });
-    const items = within(card).getAllByRole('listitem');
-    expect(items.map((li) => li.textContent)).toEqual([
-      '1. Cell biology 0.018Heavily tested, mastery low',
-      '2. Equilibrium 0.016Heavily tested, mastery low',
-      '3. Electrostatics 0.011Moderately tested, mastery low',
-    ]);
-    expect(within(card).getByRole('link', { name: 'Practice top 3' })).toHaveAttribute('href', '/quiz');
+    const table = within(screen.getByRole('region', { name: 'Study priorities' }));
+    const rows = table.getAllByRole('row').slice(1); // without the header row
+    expect(rows).toHaveLength(6);
+    expect(rows[0]).toHaveTextContent('1Cell biologyBiology · Heavily tested, mastery low40%, Weak180.018');
+    expect(rows[1]).toHaveTextContent('Equilibrium');
+    expect(rows[2]).toHaveTextContent('Electrostatics');
+    expect(table.getByText('Genetics and Optics need 5+ attempts before they are ranked.')).toBeInTheDocument();
+
+    await userEvent.click(table.getByRole('button', { name: 'Show all 10 topics' }));
+    expect(table.getAllByRole('row')).toHaveLength(11);
+    expect(table.getByRole('button', { name: 'Show fewer' })).toBeInTheDocument();
+  });
+
+  it('shows average mastery per subject', async () => {
+    await openDashboard();
+    const subjects = screen.getByRole('region', { name: 'By subject' });
+    expect(subjects).toHaveTextContent('Biology56% average mastery'); // Genetics (2 attempts) left out
+    expect(subjects).toHaveTextContent('Chemistry56% average mastery');
+    expect(subjects).toHaveTextContent('Physics60% average mastery'); // Optics (3 attempts) left out
   });
 
   it('greets by time of day', () => {

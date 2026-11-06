@@ -49,7 +49,7 @@ describe('routing and auth', () => {
 
   it('sends a logged-out user from a protected page to /login', async () => {
     renderAt('/dashboard');
-    expect(await screen.findByRole('heading', { name: /log in/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
   });
 
   it('logs in and returns to the page the user wanted', async () => {
@@ -77,13 +77,13 @@ describe('routing and auth', () => {
     renderAt('/dashboard');
 
     const priorities = await screen.findByRole('region', { name: 'Study priorities' });
-    const items = within(priorities).getAllByRole('listitem');
-    expect(items.map((li) => li.querySelector('strong')?.textContent)).toEqual([
-      '1. Cell biology',
-      '2. Equilibrium',
-      '3. Electrostatics',
+    const rows = within(priorities).getAllByRole('row').slice(1, 4); // without the header row
+    expect(rows.map((row) => row.querySelectorAll('td')[1].firstChild?.textContent)).toEqual([
+      'Cell biology',
+      'Equilibrium',
+      'Electrostatics',
     ]);
-    expect(screen.getByText(/Practice Cell biology: your top priority topic/)).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Next up' })).getByRole('heading', { name: 'Cell biology' })).toBeInTheDocument();
   });
 
   it('shows "Coming soon" for Videos and Feedback, and sends unknown pages to the chat', async () => {
@@ -130,7 +130,7 @@ describe('routing and auth', () => {
     mocked.me.mockRejectedValue(http401('Unauthorized'));
     renderAt('/chat');
 
-    expect(await screen.findByRole('heading', { name: /log in/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
     expect(tokenStorage.get()).toBeNull();
   });
 
@@ -142,7 +142,7 @@ describe('routing and auth', () => {
     // Two Log out buttons exist (sidebar + phone header); CSS shows only one of them at a time
     const [logoutButton] = await screen.findAllByRole('button', { name: /log out/i });
     await userEvent.click(logoutButton);
-    await waitFor(() => expect(screen.getByRole('heading', { name: /log in/i })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Welcome back' })).toBeInTheDocument());
     expect(tokenStorage.get()).toBeNull();
   });
 
@@ -158,7 +158,7 @@ describe('routing and auth', () => {
     await userEvent.type(screen.getByLabelText(/^email/i), 'ayesha@example.com');
     await userEvent.type(screen.getByLabelText(/^password/i), 'secret123');
     await userEvent.type(screen.getByLabelText(/confirm password/i), 'secret123');
-    await userEvent.click(screen.getByRole('button', { name: /register/i }));
+    await userEvent.click(screen.getByRole('button', { name: /create account/i }));
 
     // The verify page, not the chat: there is no token until the code is checked
     expect(await screen.findByRole('heading', { name: 'Verify your email' })).toBeInTheDocument();
