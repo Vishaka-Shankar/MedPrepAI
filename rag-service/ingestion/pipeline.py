@@ -200,9 +200,10 @@ class Pipeline:
         return self._embedder
 
     def settings_signature(self) -> str:
-        """Everything that changes the text of a page. A different signature = a fresh page cache."""
+        """Everything that changes the text of a page. A different signature = a fresh page cache.
+        orient=1: upside-down and sideways scans are turned upright (pdf_extract.read_page)."""
         s = self.settings
-        return f"tesseract={self.ocr.version};lang={s.ocr_lang};dpi={s.ocr_dpi};psm={s.ocr_psm};min={s.text_layer_min_letters}"
+        return f"tesseract={self.ocr.version};lang={s.ocr_lang};dpi={s.ocr_dpi};psm={s.ocr_psm};min={s.text_layer_min_letters};orient=1"
 
     # ---------------------------------------------------------------- run
 

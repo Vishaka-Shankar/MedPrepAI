@@ -116,6 +116,7 @@ Sample rows are stored with `isSample: true`.
 - **Rendering:** each page is rendered as if it were A4 at `OCR_DPI` (300), whatever page size the PDF claims. Phone-scanner apps store pixels as points, which made one book render at 80 megapixels per page (14.6 s per page, 4× slower).
 - **Preprocessing:** grayscale plus a contrast stretch.
 - **Page mode:** Tesseract page mode `OCR_PSM` = 4 (one column of text). This read curved phone photos and tables best, and was faster than the default.
+- **Upside-down and sideways scans:** 92 of the 223 pages of Physics IX are scanned upside-down, and OCR turned them into nonsense ("palqo ue Jo 3}e}s ay}..." is "...the state of an object" backwards). If fewer than 10% of the OCR'd words are very common English words ("the", "of", "is"...), the page's orientation is checked with Tesseract's orientation detector (OSD, about 0.5 s). If it is turned, the page is rotated upright and read again, and the new text is kept only if it reads better. Normal pages (about 30% common words) get no extra work. Upright diagram pages (Chemistry X p.41, p.56) are left as they are.
 
 **Known OCR limits:**
 - Superscripts and subscripts are lost: 6.02 × 10²³ becomes "6.02 x 1073", and CaCl₂ becomes "CaCl,".
