@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getErrorCode, getErrorEmail, getErrorMessage } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/ui/Button';
+import { AuthLayout } from '../components/layout/AuthLayout';
 import styles from './AuthPage.module.css';
 import { LoginPageState } from './ForgotPasswordPage';
 import { VerifyOtpState } from './VerifyOtpPage';
@@ -39,54 +40,55 @@ export function LoginPage() {
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.card}>
-        <p className={styles.wordmark}>MedPrep AI</p>
-        <h1 className={styles.title}>Log in to MedPrep AI</h1>
-        {notice && (
-          <p className={styles.notice} role="status">
-            {notice}
+    <AuthLayout showSwitch>
+      <h1 className={styles.title}>Welcome back</h1>
+      <p className={styles.subtitle}>Log in to continue your preparation.</p>
+      {notice && (
+        <p className={styles.notice} role="status">
+          {notice}
+        </p>
+      )}
+      <form className={styles.form} onSubmit={handleSubmit} noValidate>
+        <label className={styles.field}>
+          Email
+          <input
+            className={styles.input}
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
+        </label>
+        <div className={styles.field}>
+          <div className={styles.labelRow}>
+            <label htmlFor="login-password">Password</label>
+            <Link to="/forgot-password" className={styles.labelLink}>
+              Forgot password?
+            </Link>
+          </div>
+          <input
+            id="login-password"
+            className={styles.input}
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+          />
+        </div>
+        {error && (
+          <p className={styles.error} role="alert">
+            {error}
           </p>
         )}
-        <form className={styles.form} onSubmit={handleSubmit} noValidate>
-          <label className={styles.field}>
-            Email
-            <input
-              className={styles.input}
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-          </label>
-          <label className={styles.field}>
-            Password
-            <input
-              className={styles.input}
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-          </label>
-          {error && (
-            <p className={styles.error} role="alert">
-              {error}
-            </p>
-          )}
-          <Button type="submit" block disabled={submitting || !email || !password}>
-            {submitting ? 'Logging in...' : 'Log in'}
-          </Button>
-        </form>
-        <p className={styles.footer}>
-          <Link to="/forgot-password">Forgot password?</Link>
-        </p>
-        <p className={styles.footerNext}>
-          No account? <Link to="/register">Register</Link>
-        </p>
-      </div>
-    </div>
+        <Button type="submit" block disabled={submitting || !email || !password}>
+          {submitting ? 'Logging in...' : 'Log in'}
+        </Button>
+      </form>
+      <p className={styles.footer}>
+        New to MedPrep AI? <Link to="/register">Create an account</Link>
+      </p>
+    </AuthLayout>
   );
 }

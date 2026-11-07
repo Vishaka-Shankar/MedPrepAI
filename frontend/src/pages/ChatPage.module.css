@@ -5,22 +5,34 @@
   gap: var(--space-5);
 }
 
+/* Title on the left, subject switch on the right, a thin line under both */
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   flex-wrap: wrap;
   gap: var(--space-4);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border-soft);
 }
 
 .title {
-  font-size: 1.75rem;
+  font-size: 1.4rem;
+  font-weight: 700;
 }
 
 .subtitle {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   font-size: 0.85rem;
   color: var(--color-text-muted);
+}
+
+/* The conversation, with the Sources panel beside it on wide screens */
+.body {
+  flex: 1;
+  display: flex;
+  gap: var(--space-5);
+  align-items: stretch;
 }
 
 /* Only visible with `npm run dev:mock`, never in a real build */
@@ -36,6 +48,7 @@
 
 .log {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -96,8 +109,48 @@
   background: var(--color-bg);
 }
 
+/* Suggested questions for the selected subject, as small chips above the question box.
+   One line that scrolls sideways, so it never pushes the box up on a phone. */
+.suggestions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.suggestions ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 2px;
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.suggestionsLabel {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+.suggestion {
+  white-space: nowrap;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.suggestion:hover:not(:disabled) {
+  border-color: var(--color-primary);
+}
+.suggestion:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 @media (max-width: 767px) {
   .title {
-    font-size: 1.35rem;
+    font-size: 1.25rem;
   }
 }

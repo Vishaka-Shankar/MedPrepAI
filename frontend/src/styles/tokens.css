@@ -1,5 +1,5 @@
 /*
- * Design tokens for MedPrep AI. Colours were sampled from the mockups in docs/design
+ * Design tokens for MedPrep AI (direction A "Clinical", 2026-11-06). Colours were sampled from the mockups in docs/design
  * and checked for text contrast of at least 4.5:1 (WCAG AA).
  */
 :root {
@@ -9,10 +9,12 @@
   --color-sidebar-text: #d6dfec; /* 11.5:1 on the sidebar */
 
   /* Surfaces */
-  --color-bg: #f7f8fc; /* page background */
+  --color-bg: #f6f8fb; /* page background */
   --color-surface: #ffffff; /* cards */
   --color-surface-soft: #f1f5fa; /* citation cards, refusal notice, quiz explanation */
-  --color-border: #d5dce6;
+  --color-border: #d5dce6; /* inputs and outlined buttons */
+  --color-border-soft: #e2e8f0; /* card edges, dividers */
+  --color-surface-muted: #eef1f6; /* segmented control track, table header */
 
   /* Text */
   --color-text: #0f1f3d; /* dark navy, 16.4:1 on white */
@@ -43,15 +45,16 @@
   --color-focus-on-dark: #8fd8d8;
 
   /* Shape and depth */
-  --radius-card: 16px;
-  --radius-control: 12px;
+  --radius-card: 14px;
+  --radius-control: 10px;
   --radius-pill: 999px; /* fully rounded */
-  --shadow-card: 0 1px 3px rgb(15 31 61 / 0.06), 0 4px 14px rgb(15 31 61 / 0.05);
+  --shadow-card: 0 1px 2px rgb(15 31 61 / 0.04); /* direction A: a 1px border does most of the work */
+  --shadow-raised: 0 2px 8px rgb(15 31 61 / 0.06); /* the question box */
 
   /* Type and layout */
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --sidebar-width: 220px;
-  --content-max: 1040px;
+  --sidebar-width: 232px;
+  --content-max: 1200px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;

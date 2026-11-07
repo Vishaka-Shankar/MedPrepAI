@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
+import { Logo } from '../ui/Logo';
 import styles from './AppLayout.module.css';
 
 export const NAV_ITEMS = [
@@ -15,7 +16,7 @@ export const ADMIN_NAV_ITEM = { to: '/admin/users', label: 'Admin' };
 
 /**
  * The frame of every logged-in page.
- * Desktop: fixed 220px navy sidebar (wordmark, sections, then Profile and Log out at the bottom);
+ * Desktop: fixed navy sidebar (logo, sections, then the user's name with Profile and Log out at the bottom);
  * the page scrolls on its own.
  * Below 768px: the sections become a bottom tab bar, and the wordmark, Profile and Log out sit in a slim top bar.
  */
@@ -33,7 +34,7 @@ export function AppLayout() {
   return (
     <div className={styles.app}>
       <header className={styles.mobileHeader}>
-        <span className={styles.wordmark}>MedPrep AI</span>
+        <Logo />
         <div className={styles.headerLinks}>
           <NavLink to="/profile" className={styles.headerLink}>
             Profile
@@ -43,7 +44,9 @@ export function AppLayout() {
       </header>
 
       <aside className={styles.sidebar}>
-        <span className={`${styles.wordmark} ${styles.sidebarWordmark}`}>MedPrep AI</span>
+        <div className={styles.sidebarLogo}>
+          <Logo />
+        </div>
         <nav aria-label="Main" className={styles.nav}>
           {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} className={linkClass}>
@@ -52,13 +55,21 @@ export function AppLayout() {
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
-          <span className={styles.userName}>{user?.name}</span>
-          <nav aria-label="Account">
-            <NavLink to="/profile" className={styles.footerLink}>
-              Profile
-            </NavLink>
-          </nav>
-          {logoutButton}
+          <span className={styles.avatar} aria-hidden="true">
+            {(user?.name?.trim()[0] ?? '?').toUpperCase()}
+          </span>
+          <div className={styles.footerText}>
+            <span className={styles.userName}>{user?.name}</span>
+            <div className={styles.footerLinks}>
+              <nav aria-label="Account">
+                <NavLink to="/profile" className={styles.footerLink}>
+                  Profile
+                </NavLink>
+              </nav>
+              <span aria-hidden="true">·</span>
+              {logoutButton}
+            </div>
+          </div>
         </div>
       </aside>
 

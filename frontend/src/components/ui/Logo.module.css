@@ -1,0 +1,45 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: var(--color-primary);
+  color: #ffffff;
+}
+.mark svg {
+  width: 58%;
+  height: 58%;
+}
+
+.md .mark {
+  width: 30px;
+  height: 30px;
+}
+.md .wordmark {
+  font-size: 1.05rem;
+}
+
+.lg .mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+.lg .wordmark {
+  font-size: 1.25rem;
+}
+
+.dark .wordmark {
+  color: #ffffff;
+}
+.light .wordmark {
+  color: var(--color-text);
+}

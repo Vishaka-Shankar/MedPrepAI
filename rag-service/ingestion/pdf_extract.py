@@ -8,6 +8,7 @@ so no extra tool (like Poppler) has to be installed.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Optional
@@ -23,6 +24,14 @@ log = logging.getLogger(__name__)
 A4_WIDTH_INCHES = 8.27
 # OCR text replaces the text layer only if it holds clearly more text (20% more letters)
 OCR_MUST_BEAT_TEXT_LAYER = 1.2
+
+# Upside-down and sideways scans. Physics IX has 92 pages scanned upside-down; OCR read them as
+# "palqo ue Jo 3}e}s ay}..." ("...the state of an object", backwards). Normal OCR'd prose has about
+# 0.3 of its words in COMMON_WORDS, those pages about 0.02. Below LOOKS_ENGLISH we ask Tesseract's
+# orientation detector (OSD) how the page is turned, turn it upright and read it again.
+COMMON_WORDS = frozenset("the of and to in is a that for are as be by with this it on from or which an".split())
+LOOKS_ENGLISH = 0.10
+MIN_OSD_CONFIDENCE = 2.0  # below this OSD is guessing (e.g. a page that is mostly a diagram)
 
 
 class PdfReadError(Exception):
@@ -58,8 +67,49 @@ class OcrEngine:
         pix = page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom))
         return Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
 
+    def ocr(self, image: Image.Image) -> str:
+        return pytesseract.image_to_string(image, lang=self.lang, config=f"--psm {self.psm}")
+
+    def detect_rotation(self, image: Image.Image) -> int:
+        """Degrees (0, 90, 180, 270) the page must be turned clockwise to be upright, or 0 if unsure."""
+        try:
+            osd = pytesseract.image_to_osd(image, config="--psm 0")
+        except pytesseract.TesseractError:  # too little text to tell, or osd.traineddata missing
+            return 0
+        return rotation_from_osd(osd)
+
     def read_page(self, page: pymupdf.Page) -> str:
-        return pytesseract.image_to_string(preprocess(self.render(page)), lang=self.lang, config=f"--psm {self.psm}")
+        image = preprocess(self.render(page))
+        text = self.ocr(image)
+        if english_ratio(text) >= LOOKS_ENGLISH:
+            return text  # normal upright page: no extra work
+        angle = self.detect_rotation(image)
+        if angle == 0:
+            return text  # upright but not prose (a diagram or a table)
+        # PIL turns counter-clockwise, so a clockwise turn is a negative angle
+        turned = self.ocr(image.rotate(-angle, expand=True))
+        log.info("  page was turned %d degrees; read it again upright", angle)
+        return better_text(text, turned)
+
+
+def english_ratio(text: str) -> float:
+    """Share of the words that are very common English words (0.0 for no words)."""
+    words = re.findall(r"[a-z]+", text.lower())
+    return sum(w in COMMON_WORDS for w in words) / len(words) if words else 0.0
+
+
+def rotation_from_osd(osd: str, min_confidence: float = MIN_OSD_CONFIDENCE) -> int:
+    """Read "Rotate: 180" and "Orientation confidence: 22.1" from Tesseract's OSD output."""
+    rotate = re.search(r"Rotate: (\d+)", osd)
+    confidence = re.search(r"Orientation confidence: ([\d.]+)", osd)
+    if not rotate or not confidence or float(confidence.group(1)) < min_confidence:
+        return 0
+    return int(rotate.group(1)) % 360
+
+
+def better_text(original: str, turned: str) -> str:
+    """Keep the turned page's text only if it reads more like English (OSD can be wrong)."""
+    return turned if english_ratio(turned) > english_ratio(original) else original
 
 
 def preprocess(image: Image.Image) -> Image.Image:

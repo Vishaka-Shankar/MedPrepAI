@@ -52,3 +52,35 @@ export function priorityReason(topic: TopicStat): string {
   const mastery = topic.mastery < WEAK_BELOW ? 'mastery low' : 'mastery fair';
   return `${tested}, ${mastery}`;
 }
+
+/** Every topic with enough data, highest priority first (the dashboard's priorities table). */
+export function rankedTopics(topics: TopicStat[]): TopicStat[] {
+  return topPriorities(topics, topics.length);
+}
+
+/** Topics practised too little to be ranked yet (fewer than MIN_ATTEMPTS answers). */
+export function unrankedTopics(topics: TopicStat[]): TopicStat[] {
+  return topics.filter((t) => !hasEnoughData(t));
+}
+
+/** Weak topics: enough data and mastery below WEAK_BELOW. */
+export function weakTopics(topics: TopicStat[]): TopicStat[] {
+  return topics.filter((t) => masteryTone(t) === 'amber');
+}
+
+/** The ranked topic with the highest mastery, or null. */
+export function strongestTopic(topics: TopicStat[]): TopicStat | null {
+  return topics.filter(hasEnoughData).reduce<TopicStat | null>((best, t) => (!best || t.mastery > best.mastery ? t : best), null);
+}
+
+/** Average mastery per subject, over its topics with enough data (subjects with none are left out). */
+export function subjectAverages(topics: TopicStat[]): { subject: TopicStat['subject']; mastery: number; topics: number }[] {
+  const subjects: TopicStat['subject'][] = ['Biology', 'Chemistry', 'Physics'];
+  return subjects
+    .map((subject) => {
+      const own = topics.filter((t) => t.subject === subject && hasEnoughData(t));
+      const mastery = own.length ? own.reduce((sum, t) => sum + t.mastery, 0) / own.length : 0;
+      return { subject, mastery, topics: own.length };
+    })
+    .filter((s) => s.topics > 0);
+}

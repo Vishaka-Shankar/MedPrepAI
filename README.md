@@ -286,6 +286,7 @@ npm run dev              # http://localhost:5173
   - **Chat** (below)
   - **Quiz** and **Dashboard**: built from the designs with typed mock data (see below); their real APIs come in M5 and M6
   - Videos and Feedback: "Coming soon" cards
+- **`AuthLayout`** (`src/components/layout`, added 2026-11-06): the frame of Login, Register, Verify email and Forgot password. A navy brand panel on the left ("Your MDCAT prep, all in one place." and three FYP-I points from the SRS: REQ-PRQ-4 cited explanations, REQ-PRQ-1 past papers by subject/topic/year, 4.5 explainable priorities) and the form on the right. Login and Register have a **Log in / Sign up** switch; Login says "Welcome back" with "Forgot password?" next to the Password label, and Register's button is "Create account". Below 900 px only the logo stays above the form.
 - **`AuthContext`:** holds the logged-in user. On page load it calls `/auth/me` with the saved token; an expired token is discarded.
 - **`ProtectedRoute`:** logged-out users are sent to `/login`, and after logging in they return to the page they wanted (`/chat` by default). **`GuestOnlyRoute`** sends logged-in users away from Login, Register, Verify and Forgot password.
 - **Email verification (`/verify-otp`, `pages/VerifyOtpPage.tsx`):**
@@ -321,11 +322,11 @@ npm run dev              # http://localhost:5173
     - A wrong current password (403 `WRONG_PASSWORD`) shows on the password field.
     - 429 becomes "Too many attempts...". 503 shows the database sentence and the form keeps its input, so the user can retry.
     - Buttons are disabled while a request runs.
-- **`AppLayout`** (`src/components/layout`): a fixed 220 px navy sidebar with the wordmark, five sections (plus Admin for admins), and Profile and Log out at the bottom; the main area scrolls on its own, with a 1040 px max width. **Below 768 px** the sections become a bottom tab bar, and the wordmark, Profile and Log out move to a slim top bar.
+- **`AppLayout`** (`src/components/layout`): a fixed 232 px navy sidebar with the logo (`components/ui/Logo.tsx`), five sections (plus Admin for admins), and at the bottom the user's initial and name with **Profile · Log out**; the main area scrolls on its own, with a 1200 px max width. **Below 768 px** the sections become a bottom tab bar, and the wordmark, Profile and Log out move to a slim top bar.
 
 ### Design system (`src/styles`, `src/components/ui`)
 
-The visual design follows the mockups in `docs/design/` (chat, quiz, dashboard). Styling is plain CSS with no UI library and no Tailwind:
+The visual design is **direction A "Clinical"** (chosen 2026-11-06 from two directions drawn for every screen): the navy and teal of the first mockups in `docs/design/`, with thin card borders instead of shadows, 10 px buttons, a segmented subject switch, tables for data, and the Inter font (loaded in `index.html`; without internet the system font is used). Styling is plain CSS with no UI library and no Tailwind:
 - **`styles/tokens.css`:** every colour, radius, shadow, font and spacing as a CSS variable. The colours were sampled from the mockup pixels.
 - **`styles/global.css`:** base element styles, one visible focus ring for everything, and `.sr-only`.
 - **`*.module.css`:** each component's own styles, scoped to that component (CSS modules).
@@ -333,7 +334,8 @@ The visual design follows the mockups in `docs/design/` (chat, quiz, dashboard).
 | Token | Value | Used for |
 |---|---|---|
 | `--color-sidebar` / `--color-sidebar-active` | `#0B2545` / `#1B3A6B` | sidebar, selected item, question bubbles, active pill |
-| `--color-bg` / `--color-surface` | `#F7F8FC` / `#FFFFFF` | page background / cards (16 px radius, soft shadow) |
+| `--color-bg` / `--color-surface` | `#F6F8FB` / `#FFFFFF` | page background / cards (14 px radius) |
+| `--color-border-soft` / `--color-surface-muted` | `#E2E8F0` / `#EEF1F6` | card edges and dividers / segmented-switch track, table rows |
 | `--color-primary` | `#0C7C7C` | buttons, progress, strong mastery |
 | `--color-text` / `--color-text-muted` | `#0F1F3D` / `#55627A` | text / secondary text |
 | `--color-amber-bg` / `-text` | `#FDE8C8` / `#6B3E00` | weak-topic tile |
@@ -342,20 +344,21 @@ The visual design follows the mockups in `docs/design/` (chat, quiz, dashboard).
 | `--color-incorrect-*` | bg `#FDECEC`, border `#C0392B`, text `#7A1812` | incorrect quiz answer |
 
 **Reusable components** (`src/components/ui`):
-- `Button`: primary or outline; always a real `<button>`, `type="button"` by default. `buttonClass()` gives a `<Link>` the same look.
+- `Button`: primary (teal) or outline (white, grey border); always a real `<button>`, `type="button"` by default. `buttonClass()` gives a `<Link>` the same look.
 - `Pill`: default, active or outline. It becomes a toggle `<button aria-pressed>` when clickable.
-- `Card`: white or teal.
+- `Card`: white with a thin border, or navy (the dashboard's Next up).
+- `Logo`: the teal book-and-plus mark with the wordmark, on navy or on white.
 - `ProgressSegments`: segmented bars with `role="progressbar"`.
 - `EmptyState`.
 
 **Accessibility:**
 - Every text/background pair is **at least 4.5:1** (checked by calculation; the lowest is 4.7:1).
 - Focus rings are visible, and light teal on navy.
-- Colour is never the only signal: quiz options say "Correct answer" or "Your answer (incorrect)", and mastery tiles show the number plus a screen-reader level.
+- Colour is never the only signal: quiz options say "Correct answer" or "Your answer (incorrect)", the quiz navigator buttons are named "Question 3, incorrect", and mastery bars show the % plus a screen-reader level (Weak, Fair, Strong).
 
 ### Quiz and Dashboard (mock data, ready for the API)
 
-These pages match `docs/design/quiz.png` and `dashboard.png`. They are **not backed by the API yet**, so each shows a small "Sample data" label.
+These pages follow direction A (above). They are **not backed by the API yet**, so each shows a small "Sample data" label.
 
 **How the data flows** (so the mock can be swapped for the API without touching the pages):
 ```
@@ -367,48 +370,45 @@ src/hooks/useDashboardData.ts         (built on useAsyncData)
 To use the API later, change the loader inside `useQuizData` / `useDashboardData` to an API call returning the same type, and set `QUIZ_IS_SAMPLE` / `DASHBOARD_IS_SAMPLE` to false.
 
 **Quiz** (`/quiz`):
-- **Top row:** topic and origin chips, and a timer chip that counts down from the mock data (display only).
-- **Progress:** a segmented bar with one segment per question (teal = done, navy = current, grey = remaining), then "Question n of 10".
-- **Options A to D:** neutral until answered. After answering, the wrong choice is red with **"Your answer (incorrect)"** and the right one is green with **"Correct answer"**. The words are always shown, so colour is not the only signal.
-- **Explanation card:** "Why" with the text and a source chip, plus **Watch to revise** (video title as a placeholder link, channel and duration).
-- **Footer:** Previous (outline) and Next question (teal).
-- **Keyboard:** **A to D** answer; **Enter** goes to the next question. Enter is ignored while a button has focus, because the browser already clicks that button.
+- **Header card:** "Biology · Cell transport · Past paper (2024)", "Question n of 10", a timer (counts down from the mock data, display only) and a segmented progress bar (teal = done, navy = current, grey = remaining).
+- **Options A to D:** letter badges; neutral until answered. After answering, the wrong choice is red with **"Your answer (incorrect)"** and the right one is green with **"Correct answer"**. The words are always shown, so colour is not the only signal.
+- **Explanation card:** "Why C is correct" with the text and a source chip, plus **Watch to revise** (video title as a placeholder link, channel and duration).
+- **Navigator** (right, below the question on phones): buttons 1 to 10 coloured by right, wrong or skipped, the current one outlined. You can jump to any question up to the furthest one reached; later ones are disabled.
+- **Footer:** Previous, **Skip** and Next question. **Skip** (added 2026-11-06) is for a question the student does not know: it moves on without answering, so no attempt is recorded and the score is unaffected. The navigator marks it **skipped** (dashed amber) and the student can go back and answer it; "n of m correct · k skipped" sits above the navigator. Skipping the last question opens the results, which say how many were skipped and offer **Answer skipped questions**. Skip is disabled once a question is answered.
+- **Keyboard:** **A to D** answer; **S** skips; **Enter** goes to the next question. Enter is ignored while a button has focus, because the browser already clicks that button.
 
 **Dashboard** (`/dashboard`):
 - **Header:** the "Sample data" label and "Good morning/afternoon/evening, <name>".
-- **Top cards:**
-  - the teal **Next up** card (the top priority topic, with "Start 10 questions" linking to `/quiz`)
-  - an **Accuracy** donut drawn in plain SVG (64%, 128 attempts)
-  - **Topics practised** (14 across 3 subjects)
-- **Topic mastery tiles:** coloured by **one helper**, `masteryTone()` in `src/lib/mastery.ts`:
-
-  | Mastery | Tile |
-  |---|---|
-  | below 0.5 | amber |
-  | 0.5 up to below 0.7 | light teal |
-  | 0.7 or more | strong teal, white text |
-  | fewer than 5 attempts | dashed outline, "Insufficient data" |
-
-- **Study priorities:** the top 3 by **P = weightage × (1 − mastery)** (proposal 5.1), **computed from the data**, each with its score and a one-line reason, and a "Practice top 3" button. Topics with too little data are never ranked.
+- **Summary cards:** Accuracy (64%, "82 of 128 answers correct"), Topics practised, **Weak topics** (mastery below 0.5) and **Strongest topic**.
+- **Study priorities table:** every topic with enough data, ranked by **P = weightage × (1 − mastery)** (proposal 5.1), **computed from the data** in `src/lib/mastery.ts`. Each row: rank, topic with its subject and a one-line reason ("Heavily tested, mastery low"), a mastery bar (orange below 0.5, teal otherwise, the % always written), attempts and the score. 6 rows, then **Show all**. Topics with fewer than 5 attempts are never ranked; the table's footer names them.
+- **Next up** (navy card): the top priority topic with its reason and "Start 10 questions" (links to `/quiz`); **Practise top 3 topics** at the top right links there too.
+- **By subject:** average mastery of each subject's ranked topics (`subjectAverages()`).
+- The colour rule is still **one helper**, `masteryTone()`: below 0.5 weak, 0.5 to below 0.7 fair, 0.7 or more strong, fewer than 5 attempts "Insufficient data".
 - **API client (`src/api/client.ts`):** one axios instance that attaches `Authorization: Bearer <token>` and turns server errors into readable messages.
 - The register form checks the same rules as the backend for instant feedback; the backend still validates everything.
 - **Token storage:** the JWT is kept in `localStorage`. This is simple, but any XSS bug could read it. An httpOnly cookie is the stronger option for production.
 
 ### Chat page (`src/pages/ChatPage.tsx`)
 
-Matches `docs/design/chat.png`. It calls the real backend through `src/api/chat.ts`.
+Direction A (above). It calls the real backend through `src/api/chat.ts`.
 
 **Layout:**
-- **Header:** "Ask the syllabus" / "Answers come only from your MDCAT material." with subject pills on the right. **All** is the default; the active pill is navy.
-- **Your questions:** navy bubbles on the right.
-- **Answers:** white cards on the left with an outlined teal **"Grounded in N sources"** pill.
-- **Input:** "Your question" bar pinned to the bottom. **Enter** sends; **Shift+Enter** starts a new line. **Send** is disabled while the box is empty or an answer is loading.
+- **Header:** "Ask the syllabus" / "Answers come only from your MDCAT books, with page references." with the subject switch on the right (one segmented control; **All** is the default).
+- **Your questions:** navy bubbles on the right, with the subject as a small teal tag above.
+- **Answers:** white cards with a teal **"Grounded in N sources"** line and a **Copy answer** button (copies the answer and its sources as text).
+- **Sources panel** (`components/chat/SourcesPanel.tsx`, 1100 px and wider): the sources of one answer next to the conversation, the newest cited answer by default. A `[n]` mark selects its answer (teal outline) and highlights that source; a source opens the citation panel. Narrower screens keep the list under each answer.
+- **Input:** "Your question" box pinned to the bottom, in one bordered card with the Send button; the placeholder names the selected subject. **Enter** sends; **Shift+Enter** starts a new line. **Send** is disabled while the box is empty or an answer is loading.
 
 **Citations:**
 - Every `[n]` in the answer is a highlighted, clickable mark.
 - Under the answer, rows show "**[n] Biology XI** · page 87" with the snippet underneath. File names become the names students know; see `sourceLabel`.
-- A mark and its row open the **same citation panel** (`CitationPanel.tsx`): a **side panel** on desktop and a **bottom sheet** on phones, with source, page, file name and the full snippet.
+- Below 1100 px, a mark and its row open the **same citation panel** (`CitationPanel.tsx`): a **side panel** on desktop and a **bottom sheet** on phones, with source, page, file name and the full snippet.
 - Keyboard: focus moves to Close, **Escape** closes the panel, and focus returns to the mark or row that opened it.
+
+**Subject filter and suggested questions** (`src/lib/chatSubjects.ts`, added 2026-11-06):
+- The pills filter the conversation too, not only the subject a new question is sent with. A question belongs to the subject it was asked with; a question asked under **All** belongs to the subjects of the textbooks its answer cites (Biology XII -> Biology). A refused question cites nothing, so it only shows under All. Nothing is filtered on the server: the history is loaded once and filtered in the page.
+- Each pill has its own suggested questions (`src/lib/suggestions.ts`): a pool of 10 per subject, each answered by a page of the ingested books. Three are shown, picked at random each time the page opens (one seed per visit, so the chips don't jump while you use the page); **All** shows one per subject, and questions you already asked are left out. To add one, check it first with `python -m app.search "..." --subject <subject>`. With no questions for the selected subject, they show as cards ("No Physics questions yet"); otherwise as small chips above the question box. A click asks the question with the selected subject.
+- `sourceLabel` names all four years of books: "STBB_Physics_IX.pdf" -> "Physics IX".
 
 **Out of scope:** the API's text (e.g. "I couldn't find this in the syllabus material. Try rephrasing, or pick a subject.") is shown in a dashed light-grey bubble, with **no** "Grounded" pill and no citations.
 
@@ -443,7 +443,7 @@ The answer text refers to citations as `[1]`, `[2]`, ..., in list order. `refuse
 
 ```bash
 cd backend  && npm test     # 136 tests: chat on a real MongoDB (auth required, saves message + citations renumbered [1]..[n], out of scope, rag down / AI key missing -> 503 + failed, validation, user isolation in history, 50 limit, Unknown source, account delete), RagClient (timeout, down, 503 sentence), renumbering, RAG_SERVICE_URL, atlas_index.json shape + 384-d index, + users CRUD, roles, change email, password reset, sessions, delete cascade, admin seed on a real MongoDB, + OTP on a real MongoDB (one email per sign-up, verify, attempts, lock, expiry, resend cooldown, 403 unverified, hashed codes, no codes in logs, throttling), + real-MongoDB auth e2e (register -> row -> login -> generic 401 -> 503 when DB down), env validation, DTO rules, guard, AuthService, schemas, full HTTP auth flow
-cd frontend && npm test     # 120 tests: coded 503 sentence on the chat page, forgot password (link, steps, validation tied to inputs, wrong/expired code, 503 retry, 429), profile (edit name, change password: fresh token, wrong current password on its field, reuse, 401 logout; change email 409 -> code -> done; delete dialog: focus, Cancel/Escape, wrong password, 503, success -> Register), admin (role guard, own row locked, role change, confirmed delete, search, pagination, 503 retry), OTP boxes (typing, paste, Backspace), resend countdown, verify errors (wrong/expired/locked/invalid, 503 retry), register -> verify -> chat, login 403 -> verify, 429/503 messages, mastery colours (0.5 / 0.7 boundaries), priorities, insufficient data, quiz keyboard, data hook, chat API requests (subjectId), citation panel, out of scope, retry/timeout, UI components, Quiz, Dashboard priorities (P = w(1-M)), navigation, routes and auth, form validation, Chat page (send, Enter/Shift+Enter, history,
+cd frontend && npm test     # 149 tests: quiz Skip, auth layout copy + Log in/Sign up switch, chat Sources panel + Copy answer, dashboard table + summaries, quiz navigator, chat subject filter + random per-subject suggestions, coded 503 sentence on the chat page, forgot password (link, steps, validation tied to inputs, wrong/expired code, 503 retry, 429), profile (edit name, change password: fresh token, wrong current password on its field, reuse, 401 logout; change email 409 -> code -> done; delete dialog: focus, Cancel/Escape, wrong password, 503, success -> Register), admin (role guard, own row locked, role change, confirmed delete, search, pagination, 503 retry), OTP boxes (typing, paste, Backspace), resend countdown, verify errors (wrong/expired/locked/invalid, 503 retry), register -> verify -> chat, login 403 -> verify, 429/503 messages, mastery colours (0.5 / 0.7 boundaries), priorities, insufficient data, quiz keyboard, data hook, chat API requests (subjectId), citation panel, out of scope, retry/timeout, UI components, Quiz, Dashboard priorities (P = w(1-M)), navigation, routes and auth, form validation, Chat page (send, Enter/Shift+Enter, history,
                             #   citations, refusal style, service down, session expired, retry), mock API
 cd rag-service && .venv\Scripts\python.exe -m pytest   # 196 tests: citation snippets (claim-matched, noise/heading skipped, <= 200 chars), Q&A service (answer + citations, out of scope without an LLM call, threshold/margin, Groq retry/timeout, empty key, API, CORS, lazy model), junk filter, syllabus re-ranking, cleaning, chunking, OCR page choice, subjects, page cache, progress, embedding config, dimension check, retrieval, re-embed (resume, no duplicates, low-memory pause; fake embedder, local mongod), storage estimate
 ```

@@ -1,25 +1,25 @@
 import { FormEvent, KeyboardEvent, useLayoutEffect, useRef } from 'react';
 import { SUBJECT_OPTIONS, SubjectFilter } from '../../api/chatTypes';
 import { Button } from '../ui/Button';
-import { Pill } from '../ui/Pill';
 import styles from './ChatComposer.module.css';
 
 export const MAX_QUESTION_LENGTH = 2000; // same limit as chat_messages.question in the backend
 const MAX_INPUT_HEIGHT = 160; // px; longer questions scroll inside the box
 
-/** The subject filter as pills: All / Biology / Chemistry / Physics. */
+/** The subject filter: one segmented control (All / Biology / Chemistry / Physics). */
 export function SubjectPills({ value, onChange }: { value: SubjectFilter; onChange: (s: SubjectFilter) => void }) {
   return (
-    <div className={styles.pills} role="group" aria-label="Subject">
+    <div className={styles.segments} role="group" aria-label="Subject">
       {SUBJECT_OPTIONS.map((o) => (
-        <Pill
+        <button
           key={o.value}
-          variant={value === o.value ? 'active' : 'default'}
-          pressed={value === o.value}
+          type="button"
+          className={value === o.value ? `${styles.segment} ${styles.segmentOn}` : styles.segment}
+          aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
         >
           {o.label}
-        </Pill>
+        </button>
       ))}
     </div>
   );
@@ -27,13 +27,14 @@ export function SubjectPills({ value, onChange }: { value: SubjectFilter; onChan
 
 interface Props {
   draft: string;
+  placeholder?: string;
   disabled: boolean;
   onDraftChange: (text: string) => void;
   onSend: () => void;
 }
 
-/** The input bar at the bottom: question box and Send button. */
-export function ChatComposer({ draft, disabled, onDraftChange, onSend }: Props) {
+/** The question box at the bottom: one bordered card holding the text box and the Send button. */
+export function ChatComposer({ draft, placeholder, disabled, onDraftChange, onSend }: Props) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Grow the box with the text (Shift+Enter lines), up to MAX_INPUT_HEIGHT
@@ -70,7 +71,7 @@ export function ChatComposer({ draft, disabled, onDraftChange, onSend }: Props) 
           rows={1}
           value={draft}
           maxLength={MAX_QUESTION_LENGTH}
-          placeholder="Ask about any Biology, Chemistry or Physics topic"
+          placeholder={placeholder ?? 'Ask about any Biology, Chemistry or Physics topic'}
           aria-describedby="composer-hint"
           onChange={(e) => onDraftChange(e.target.value)}
           onKeyDown={handleKeyDown}
