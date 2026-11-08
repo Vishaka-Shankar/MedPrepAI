@@ -22,4 +22,17 @@ async function bootstrap() {
   logger.log(`CORS allows: ${env.get('FRONTEND_ORIGIN', { infer: true })}`);
 }
 
+import * as dns from 'dns';
+
+// Some networks/antivirus make Node's default resolver (127.0.0.1) refuse SRV lookups.
+// Set DNS_SERVERS=1.1.1.1,8.8.8.8 to bypass it. Does nothing when unset.
+const dnsServers = (process.env.DNS_SERVERS ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+if (dnsServers.length > 0) {
+  dns.setServers(dnsServers);
+}
+
 void bootstrap();
+
