@@ -1,6 +1,6 @@
 import { Transform, Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Length, Max, MaxLength, Min } from 'class-validator';
-import { IsAccountEmail, IsExistingPassword, IsNewPassword, IsOtpCode, trim } from '../../auth/dto/validators';
+import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsAccountEmail, IsExistingPassword, IsNewPassword, IsOtpCode, IsPersonName, trim } from '../../auth/dto/validators';
 
 export const MAX_PAGE_SIZE = 50;
 export const DEFAULT_PAGE_SIZE = 20;
@@ -9,9 +9,7 @@ export const ASSIGNABLE_ROLES = ['student', 'admin'] as const;
 export type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
 
 export class UpdateProfileDto {
-  @Transform(trim)
-  @IsString()
-  @Length(2, 80, { message: 'name must be 2 to 80 characters' })
+  @IsPersonName()
   name!: string;
 }
 

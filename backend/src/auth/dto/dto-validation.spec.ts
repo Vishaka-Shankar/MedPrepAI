@@ -17,6 +17,17 @@ describe('RegisterDto', () => {
     expect(await errorsFor(RegisterDto, good)).toEqual([]);
   });
 
+  it.each(['Ayesha Khan', 'Abdul-Rahman', "O'Brien", 'M. Ali', 'Syed Ali Jr.', 'Zoë', 'عائشہ خان', 'Al'])(
+    'accepts the name %s',
+    async (name) => {
+      expect(await errorsFor(RegisterDto, { ...good, name })).toEqual([]);
+    },
+  );
+
+  it('tidies spaces in the name ("  Ayesha   Khan " -> "Ayesha Khan")', () => {
+    expect(plainToInstance(RegisterDto, { ...good, name: '  Ayesha   Khan ' }).name).toBe('Ayesha Khan');
+  });
+
   it('trims the name and lowercases the email', () => {
     const dto = plainToInstance(RegisterDto, { ...good, name: '  Ayesha  ', email: ' AYESHA@Example.COM ' });
     expect(dto.name).toBe('Ayesha');
@@ -25,6 +36,13 @@ describe('RegisterDto', () => {
 
   it.each([
     ['name too short', { ...good, name: 'A' }, 'name'],
+    ['name with digits', { ...good, name: 'Ayesha123' }, 'name'],
+    ['name of only digits', { ...good, name: '12345' }, 'name'],
+    ['name with symbols', { ...good, name: 'Ali@Khan!' }, 'name'],
+    ['name of only symbols', { ...good, name: '#$%&' }, 'name'],
+    ['name starting with a hyphen', { ...good, name: '-Ali' }, 'name'],
+    ['name with two hyphens in a row', { ...good, name: 'Ali--Khan' }, 'name'],
+    ['name with an underscore', { ...good, name: 'ali_khan' }, 'name'],
     ['invalid email', { ...good, email: 'not-an-email' }, 'email'],
     ['password too short', { ...good, password: 'abc12' }, 'password'],
     ['password without a number', { ...good, password: 'onlyletters' }, 'password'],

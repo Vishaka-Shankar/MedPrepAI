@@ -1,7 +1,7 @@
 import * as bcrypt from 'bcrypt';
 import { Model } from 'mongoose';
 import { BCRYPT_ROUNDS } from '../auth/auth.service';
-import { PASSWORD_MAX, PASSWORD_MIN, PASSWORD_PATTERN } from '../auth/dto/validators';
+import { NAME_MAX, NAME_MIN, NAME_PATTERN, PASSWORD_MAX, PASSWORD_MIN, PASSWORD_PATTERN } from '../auth/dto/validators';
 import { User } from '../schemas/user.schema';
 
 export interface AdminInput {
@@ -14,12 +14,13 @@ export type SeedResult = 'created' | 'promoted' | 'already-admin';
 
 /** Reads ADMIN_NAME, ADMIN_EMAIL, ADMIN_PASSWORD and checks them with the same rules as registration. */
 export function readAdminEnv(env: Record<string, string | undefined>): AdminInput {
-  const name = env.ADMIN_NAME?.trim() ?? '';
+  const name = env.ADMIN_NAME?.trim().replace(/\s+/g, ' ') ?? '';
   const email = env.ADMIN_EMAIL?.trim().toLowerCase() ?? '';
   const password = env.ADMIN_PASSWORD ?? '';
 
   const errors: string[] = [];
-  if (name.length < 2 || name.length > 80) errors.push('ADMIN_NAME must be 2 to 80 characters');
+  if (name.length < NAME_MIN || name.length > NAME_MAX) errors.push(`ADMIN_NAME must be ${NAME_MIN} to ${NAME_MAX} characters`);
+  else if (!NAME_PATTERN.test(name)) errors.push('ADMIN_NAME can only contain letters, spaces, hyphens, apostrophes and dots');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('ADMIN_EMAIL must be a valid email address');
   if (password.length < PASSWORD_MIN || password.length > PASSWORD_MAX || !PASSWORD_PATTERN.test(password)) {
     errors.push(`ADMIN_PASSWORD must be ${PASSWORD_MIN} to ${PASSWORD_MAX} characters with a letter and a number`);

@@ -1,11 +1,7 @@
-import { Transform } from 'class-transformer';
-import { IsString, Length } from 'class-validator';
-import { IsAccountEmail, IsNewPassword, trim } from './validators';
+import { IsAccountEmail, IsNewPassword, IsPersonName } from './validators';
 
 export class RegisterDto {
-  @Transform(trim)
-  @IsString()
-  @Length(2, 80, { message: 'name must be 2 to 80 characters' })
+  @IsPersonName()
   name!: string;
 
   @IsAccountEmail()

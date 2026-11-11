@@ -493,6 +493,9 @@ describe('users CRUD, roles and password reset against a real MongoDB (e2e)', ()
       expect(() => readAdminEnv({ ADMIN_NAME: 'Admin', ADMIN_EMAIL: 'a@b.com', ADMIN_PASSWORD: 'weakpass' })).toThrow(
         /ADMIN_PASSWORD must be 8 to 72 characters/,
       );
+      expect(() => readAdminEnv({ ADMIN_NAME: 'Admin123', ADMIN_EMAIL: 'a@b.com', ADMIN_PASSWORD: 'Admin1234' })).toThrow(
+        /ADMIN_NAME can only contain letters/,
+      );
       try {
         readAdminEnv({ ADMIN_EMAIL: 'bad', ADMIN_PASSWORD: 'leaky-secret' });
       } catch (err) {
