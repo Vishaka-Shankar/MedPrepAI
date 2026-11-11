@@ -12,6 +12,13 @@ describe('validateEnv', () => {
     expect(env.JWT_EXPIRES_IN).toBe('1d');
     expect(env.FRONTEND_ORIGIN).toBe('http://localhost:5173');
     expect(env.RAG_SERVICE_URL).toBe('http://localhost:8000');
+    expect(env.LOGIN_2FA).toBe(true); // two-step login is on unless turned off
+  });
+
+  it('reads LOGIN_2FA as true or false and rejects anything else', () => {
+    expect(validateEnv({ ...valid, LOGIN_2FA: 'false' }).LOGIN_2FA).toBe(false);
+    expect(validateEnv({ ...valid, LOGIN_2FA: 'TRUE' }).LOGIN_2FA).toBe(true);
+    expect(() => validateEnv({ ...valid, LOGIN_2FA: 'maybe' })).toThrow('LOGIN_2FA must be true or false');
   });
 
   it('accepts a RAG_SERVICE_URL without its trailing slash and rejects one without http', () => {

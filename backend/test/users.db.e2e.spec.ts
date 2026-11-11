@@ -38,6 +38,7 @@ describe('users CRUD, roles and password reset against a real MongoDB (e2e)', ()
   beforeAll(async () => {
     mongo = await MongoMemoryServer.create();
     process.env.MONGODB_URI = mongo.getUri('medprep_users_e2e'); // replaces the Atlas URI from ../.env
+    process.env.LOGIN_2FA = 'false'; // these tests log in with the password only (two-step login is tested in auth.db.e2e)
     const { AppModule } = await import('../src/app.module');
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();

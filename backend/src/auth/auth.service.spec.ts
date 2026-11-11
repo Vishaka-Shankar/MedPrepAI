@@ -1,11 +1,12 @@
-import { ConflictException, ForbiddenException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { FakeOtpService } from '../../test/fake-otp.service';
 import { InMemoryUsersService } from '../../test/in-memory-users.service';
 import { MailService } from '../mail/mail.service';
 import { UsersService } from '../users/users.service';
-import { AuthService, INVALID_LOGIN, RESEND_MESSAGE } from './auth.service';
+import { AuthResponse, AuthService, INVALID_LOGIN, LOGIN_CODE_SENT, LOGIN_RESEND_MESSAGE, RESEND_MESSAGE } from './auth.service';
 import { OtpService } from './otp.service';
 import { TokenService } from './token.service';
 
@@ -17,14 +18,17 @@ describe('AuthService', () => {
   let mail: { sendOtp: jest.Mock };
   let jwt: JwtService;
   let auth: AuthService;
+  let settings: Record<string, unknown>; // what ConfigService.get returns (LOGIN_2FA)
 
   beforeEach(() => {
+    settings = {};
     users = new InMemoryUsersService();
     otp = new FakeOtpService();
     mail = { sendOtp: jest.fn().mockResolvedValue(undefined) };
     jwt = new JwtService({ secret: SECRET, signOptions: { expiresIn: '1h' } });
     const tokens = new TokenService(jwt, users as unknown as UsersService);
-    auth = new AuthService(users as unknown as UsersService, tokens, otp as unknown as OtpService, mail as unknown as MailService);
+    const config = { get: (key: string) => settings[key] } as unknown as ConfigService;
+    auth = new AuthService(users as unknown as UsersService, tokens, otp as unknown as OtpService, mail as unknown as MailService, config);
   });
 
   const registerAyesha = () => auth.register({ name: 'Ayesha', email: 'ayesha@example.com', password: 'secret123' });
@@ -112,9 +116,10 @@ describe('AuthService', () => {
       expect(mail.sendOtp).toHaveBeenCalled();
     });
 
-    it('returns a token for a verified account with the right password', async () => {
+    it('with LOGIN_2FA=false, returns a token straight away for the right password', async () => {
+      settings.LOGIN_2FA = false;
       await verifyAyesha();
-      const res = await auth.login({ email: 'ayesha@example.com', password: 'secret123' });
+      const res = (await auth.login({ email: 'ayesha@example.com', password: 'secret123' })) as AuthResponse;
       expect(await jwt.verifyAsync(res.accessToken)).toMatchObject({ email: 'ayesha@example.com' });
     });
 
@@ -130,6 +135,82 @@ describe('AuthService', () => {
       await expect(auth.login({ email: 'nobody@example.com', password: 'secret123' })).rejects.toThrow(
         new UnauthorizedException(INVALID_LOGIN),
       );
+    });
+  });
+
+  describe('two-step login (LOGIN_2FA on, the default)', () => {
+    const loginAyesha = () => auth.login({ email: 'ayesha@example.com', password: 'secret123' });
+    beforeEach(async () => {
+      await registerAyesha();
+      await verifyAyesha();
+      mail.sendOtp.mockClear();
+      otp.issued.length = 0;
+    });
+
+    it('the right password emails a login code and returns no token', async () => {
+      const res = await loginAyesha();
+      expect(res).toEqual({ twoFactorRequired: true, email: 'ayesha@example.com', message: LOGIN_CODE_SENT });
+      expect(res).not.toHaveProperty('accessToken');
+      expect(otp.issued).toEqual([expect.objectContaining({ purpose: 'login', email: 'ayesha@example.com' })]);
+      expect(mail.sendOtp).toHaveBeenCalledWith('ayesha@example.com', FakeOtpService.CODE, 'login', 10);
+    });
+
+    it('the right code gives the token, and the code works only once', async () => {
+      await loginAyesha();
+      const res = await auth.verifyLogin({ email: 'ayesha@example.com', code: FakeOtpService.CODE });
+      expect(await jwt.verifyAsync(res.accessToken)).toMatchObject({ email: 'ayesha@example.com' });
+      expect(res.user.email).toBe('ayesha@example.com');
+      await expect(auth.verifyLogin({ email: 'ayesha@example.com', code: FakeOtpService.CODE })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+
+    it('a wrong code is refused and gives no token', async () => {
+      await loginAyesha();
+      await expect(auth.verifyLogin({ email: 'ayesha@example.com', code: '000000' })).rejects.toMatchObject({
+        response: expect.objectContaining({ attemptsLeft: 4 }),
+      });
+    });
+
+    it('a code is useless without the password step first', async () => {
+      await expect(auth.verifyLogin({ email: 'ayesha@example.com', code: FakeOtpService.CODE })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      await expect(auth.verifyLogin({ email: 'nobody@example.com', code: FakeOtpService.CODE })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+
+    it('a verify-email code cannot be used as a login code', async () => {
+      await loginAyesha();
+      await otp.discard(users.users[0].id, 'login');
+      await otp.issue(users.users[0], 'verify_email');
+      await expect(auth.verifyLogin({ email: 'ayesha@example.com', code: FakeOtpService.CODE })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+    });
+
+    it('resend sends a new code only while a login is waiting, with the same answer either way', async () => {
+      expect(await auth.resendLogin({ email: 'ayesha@example.com' })).toEqual({ message: LOGIN_RESEND_MESSAGE });
+      expect(mail.sendOtp).not.toHaveBeenCalled(); // no password step yet: nothing to resend
+
+      await loginAyesha();
+      mail.sendOtp.mockClear();
+      expect(await auth.resendLogin({ email: 'ayesha@example.com' })).toEqual({ message: LOGIN_RESEND_MESSAGE });
+      expect(mail.sendOtp).toHaveBeenCalledWith('ayesha@example.com', FakeOtpService.CODE, 'login', 10);
+
+      expect(await auth.resendLogin({ email: 'nobody@example.com' })).toEqual({ message: LOGIN_RESEND_MESSAGE });
+    });
+
+    it('if the email cannot be sent, the login fails and the unsent code is dropped', async () => {
+      mail.sendOtp.mockRejectedValueOnce(new ServiceUnavailableException('mail down'));
+      await expect(loginAyesha()).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(await otp.hasActive(users.users[0].id, 'login')).toBe(false);
+    });
+
+    it('a wrong password sends no login code', async () => {
+      await expect(auth.login({ email: 'ayesha@example.com', password: 'wrong123' })).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(mail.sendOtp).not.toHaveBeenCalled();
     });
   });
 });

@@ -44,6 +44,7 @@ describe('chat: /chat/ask and /chat/history against a real MongoDB (e2e)', () =>
   beforeAll(async () => {
     mongo = await MongoMemoryServer.create();
     process.env.MONGODB_URI = mongo.getUri('medprep_chat_e2e');
+    process.env.LOGIN_2FA = 'false'; // these tests log in with the password only (two-step login is tested in auth.db.e2e)
     const { AppModule } = await import('../src/app.module');
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).overrideProvider(RagClient).useValue(rag).compile();
     app = moduleRef.createNestApplication({ logger: false });

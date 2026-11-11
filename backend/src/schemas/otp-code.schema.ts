@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 
-export const OTP_PURPOSES = ['verify_email', 'reset_password', 'change_email'] as const;
+export const OTP_PURPOSES = ['verify_email', 'reset_password', 'change_email', 'login'] as const;
 export type OtpPurpose = (typeof OTP_PURPOSES)[number];
 
 export type OtpCodeDocument = HydratedDocument<OtpCode>;

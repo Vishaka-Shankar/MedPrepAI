@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { PublicUser } from '../users/users.service';
-import { AuthResponse, AuthService, RegisterResponse } from './auth.service';
+import { AuthResponse, AuthService, LoginCodeResponse, RegisterResponse } from './auth.service';
 import { CurrentUser } from './current-user.decorator';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -59,12 +59,37 @@ export class AuthController {
     return this.auth.resetPassword(dto);
   }
 
-  /** POST /auth/login -> 200 { accessToken, user }; 401 generic; 403 EMAIL_NOT_VERIFIED */
+  /**
+   * POST /auth/login { email, password } -> 200 { twoFactorRequired, email, message } (code emailed, no token yet),
+   * or { accessToken, user } when LOGIN_2FA=false; 401 generic; 403 EMAIL_NOT_VERIFIED. At most 10 a minute per IP.
+   */
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  login(@Body() dto: LoginDto): Promise<AuthResponse> {
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  login(@Body() dto: LoginDto): Promise<AuthResponse | LoginCodeResponse> {
     return this.auth.login(dto);
+  }
+
+  /** POST /auth/login/verify { email, code } -> 200 { accessToken, user }. Step 2 of login. At most 10 tries a minute per IP. */
+  @Public()
+  @Post('login/verify')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  verifyLogin(@Body() dto: VerifyOtpDto): Promise<AuthResponse> {
+    return this.auth.verifyLogin(dto);
+  }
+
+  /** POST /auth/login/resend { email } -> 200 { message } (always the same). At most 3 a minute per IP. */
+  @Public()
+  @Post('login/resend')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  resendLogin(@Body() dto: ResendOtpDto): Promise<{ message: string }> {
+    return this.auth.resendLogin(dto);
   }
 
   /** GET /auth/me (needs Bearer token) -> 200 { id, name, email, role, emailVerified } */

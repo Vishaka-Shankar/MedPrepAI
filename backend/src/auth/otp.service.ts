@@ -55,6 +55,14 @@ export class OtpService {
     return code;
   }
 
+  /** True if a code is waiting to be typed in: unused, not expired, and fewer than 5 wrong attempts. */
+  async hasActive(userId: string, purpose: OtpPurpose): Promise<boolean> {
+    const otp = await this.otpModel
+      .findOne({ userId: new Types.ObjectId(userId), purpose, usedAt: null, expiresAt: { $gt: new Date() }, attempts: { $lt: OTP_MAX_ATTEMPTS } })
+      .exec();
+    return otp !== null;
+  }
+
   /** Remove every code of a user (registration rolled back, password reset, account deleted). */
   async discardAll(userId: string): Promise<void> {
     await this.otpModel.deleteMany({ userId: new Types.ObjectId(userId) }).exec();

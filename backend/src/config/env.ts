@@ -17,6 +17,8 @@ export interface AppEnv {
   SMTP_USER: string;
   SMTP_PASS: string;
   MAIL_FROM: string;
+  // Two-step login: after the right password, a 6-digit code is emailed. true unless set to false.
+  LOGIN_2FA: boolean;
 }
 
 export function validateEnv(raw: Record<string, unknown>): AppEnv {
@@ -29,6 +31,7 @@ export function validateEnv(raw: Record<string, unknown>): AppEnv {
     return '';
   };
 
+  const login2fa = str('LOGIN_2FA', 'true').toLowerCase();
   const env: AppEnv = {
     MONGODB_URI: str('MONGODB_URI'),
     JWT_SECRET: str('JWT_SECRET'),
@@ -41,6 +44,7 @@ export function validateEnv(raw: Record<string, unknown>): AppEnv {
     SMTP_USER: str('SMTP_USER', ''),
     SMTP_PASS: str('SMTP_PASS', ''),
     MAIL_FROM: '',
+    LOGIN_2FA: login2fa !== 'false',
   };
   // Gmail only accepts mail "from" the account itself, so default to the SMTP user when it is an
   // address. Mailtrap-style usernames are not addresses, so those get a placeholder sender.
@@ -64,6 +68,10 @@ export function validateEnv(raw: Record<string, unknown>): AppEnv {
   }
   if (env.SMTP_HOST && (!env.SMTP_USER || !env.SMTP_PASS)) {
     errors.push('SMTP_USER and SMTP_PASS are required when SMTP_HOST is set');
+  }
+
+  if (login2fa !== 'true' && login2fa !== 'false') {
+    errors.push('LOGIN_2FA must be true or false');
   }
 
   if (errors.length > 0) {
