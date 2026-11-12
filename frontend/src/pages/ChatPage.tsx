@@ -141,7 +141,7 @@ export function ChatPage() {
   const markHandler =
     (messageId: string): OpenCitationHandler =>
     (open, trigger) => {
-      if (window.matchMedia?.(WIDE_SCREEN).matches) setSelected({ id: messageId, number: open.number });
+      if (window.matchMedia?.(WIDE_SCREEN)?.matches) setSelected({ id: messageId, number: open.number });
       else openPanel(open, trigger);
     };
 

@@ -1,4 +1,5 @@
 import { ConflictException, ForbiddenException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { MailService } from '../mail/mail.service';
 import { OtpPurpose } from '../schemas/otp-code.schema';
@@ -21,12 +22,23 @@ export const RESEND_MESSAGE = 'If this email needs verification, a new code is o
 export const FORGOT_PASSWORD_MESSAGE =
   'If an account exists for this email, we sent a password reset code. It expires in 10 minutes.';
 export const PASSWORD_RESET_DONE = 'Your password has been reset. Please log in with your new password.';
+/** Two-step login: shown after the right password, when the code has been emailed. */
+export const LOGIN_CODE_SENT = 'We sent a 6-digit login code to your email. It expires in 10 minutes.';
+/** Same answer for every login-code resend, so it can't reveal anything about the account. */
+export const LOGIN_RESEND_MESSAGE = 'If a login is waiting for a code, a new one is on its way. You can ask again after 60 seconds.';
 
 export { maskEmail };
 
 export interface AuthResponse {
   accessToken: string;
   user: PublicUser;
+}
+
+/** Step 1 of a two-step login: the password was right, now the emailed code is needed. No token yet. */
+export interface LoginCodeResponse {
+  twoFactorRequired: true;
+  email: string;
+  message: string;
 }
 
 export interface RegisterResponse {
@@ -43,7 +55,14 @@ export class AuthService {
     private readonly tokens: TokenService,
     private readonly otp: OtpService,
     private readonly mail: MailService,
+    private readonly config: ConfigService,
   ) {}
+
+  /** LOGIN_2FA in .env (true unless set to false). false = the password alone logs in, as before. */
+  private loginCodeRequired(): boolean {
+    const value: unknown = this.config.get('LOGIN_2FA');
+    return value !== false && value !== 'false';
+  }
 
   /** Create an unverified account and email a code. No token until the email is verified. */
   async register(dto: RegisterDto): Promise<RegisterResponse> {
@@ -97,7 +116,11 @@ export class AuthService {
     return { message: RESEND_MESSAGE };
   }
 
-  async login(dto: LoginDto): Promise<AuthResponse> {
+  /**
+   * Step 1: check the password. With LOGIN_2FA on, email a login code and return
+   * { twoFactorRequired, email } with no token; the token comes from verifyLogin (step 2).
+   */
+  async login(dto: LoginDto): Promise<AuthResponse | LoginCodeResponse> {
     const userDoc = await this.users.findByEmailWithPassword(dto.email);
     const passwordOk = userDoc ? await bcrypt.compare(dto.password, userDoc.passwordHash) : false;
 
@@ -127,7 +150,48 @@ export class AuthService {
         email: user.email,
       });
     }
+    if (!this.loginCodeRequired()) return this.buildResponse(user);
+
+    // Pressing "Log in" twice within 60 s keeps the code already sent instead of emailing another
+    const waiting = await this.otp.hasActive(user.id, 'login');
+    if (!waiting || (await this.otp.secondsUntilResend(user.id, 'login')) === 0) {
+      try {
+        await this.sendCode(user, 'login');
+      } catch (err) {
+        // The email failed (503, no token): drop the unsent code so the next try sends a fresh one
+        await this.otp.discard(user.id, 'login');
+        throw err;
+      }
+    }
+    this.logger.log(`Password ok for user ${user.id}; waiting for the login code`);
+    return { twoFactorRequired: true, email: user.email, message: LOGIN_CODE_SENT };
+  }
+
+  /** Step 2: check the emailed login code (same expiry, attempt and lock rules as verify-otp), then issue the token. */
+  async verifyLogin(dto: VerifyOtpDto): Promise<AuthResponse> {
+    const user = await this.users.findByEmail(dto.email);
+    if (!user) throw otpInvalid();
+
+    const result = await this.otp.verify(user.id, 'login', dto.code);
+    if (result.status !== 'ok') throw otpFailure(result);
+    this.logger.log(`Login code ok for user ${user.id}`);
     return this.buildResponse(user);
+  }
+
+  /**
+   * Email a new login code, but only while a login is waiting for one (so only after the right
+   * password) and the 60 s cooldown has passed. After 5 wrong codes the user must log in again.
+   */
+  async resendLogin(dto: ResendOtpDto): Promise<{ message: string }> {
+    const user = await this.users.findByEmail(dto.email);
+    if (!user || !(await this.otp.hasActive(user.id, 'login'))) {
+      this.logger.log(`Login code resend skipped for ${maskEmail(dto.email)}: no login waiting`);
+    } else if ((await this.otp.secondsUntilResend(user.id, 'login')) > 0) {
+      this.logger.log(`Login code resend skipped for user ${user.id}: cooldown`);
+    } else {
+      await this.sendCode(user, 'login');
+    }
+    return { message: LOGIN_RESEND_MESSAGE };
   }
 
   /**

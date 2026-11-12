@@ -236,7 +236,12 @@ describe('auth with email OTP against a real MongoDB (e2e)', () => {
       await register('  Ayesha.Khan@Example.COM ');
       await verify('ayesha.khan@example.com', codeFor('ayesha.khan@example.com'));
 
-      const ok = await login('AYESHA.khan@example.com ');
+      // Two-step login: the password emails a code, the code gives the token
+      const step1 = await login('AYESHA.khan@example.com ');
+      expect(step1.status).toBe(200);
+      expect(step1.body).toMatchObject({ twoFactorRequired: true, email: 'ayesha.khan@example.com' });
+      expect(step1.body.accessToken).toBeUndefined();
+      const ok = await http().post('/auth/login/verify').send({ email: 'ayesha.khan@example.com', code: codeFor('ayesha.khan@example.com') });
       expect(ok.status).toBe(200);
       expect(ok.body.user).toMatchObject({ email: 'ayesha.khan@example.com', emailVerified: true });
 
@@ -248,6 +253,67 @@ describe('auth with email OTP against a real MongoDB (e2e)', () => {
       // ...while the server log says which one it was
       expect(logLines).toContainEqual(expect.stringMatching(/wrong password for user /));
       expect(logLines).toContain('Login failed: no account for n***@example.com');
+    });
+  });
+
+  describe('two-step login (login code)', () => {
+    const verifyLogin = (email: string, code: string) => http().post('/auth/login/verify').send({ email, code });
+    const resendLogin = (email: string) => http().post('/auth/login/resend').send({ email });
+    async function verifiedUser(email: string): Promise<void> {
+      await register(email);
+      await verify(email, codeFor(email));
+      mail.outbox.length = 0;
+    }
+
+    it('stores the login code hashed with purpose "login"; pressing Log in twice sends only one email', async () => {
+      await verifiedUser('twice@example.com');
+      await login('twice@example.com');
+      await login('twice@example.com');
+      expect(mail.outbox).toHaveLength(1);
+      expect(mail.outbox[0].subject).toBe('Your MedPrep AI login code');
+
+      const rows = (await otpRows('twice@example.com')).filter((r) => r.purpose === 'login');
+      expect(rows).toHaveLength(1);
+      expect(rows[0].codeHash).toMatch(/^\$2[aby]\$10\$/);
+      expect(rows[0].codeHash).not.toContain(codeFor('twice@example.com'));
+    });
+
+    it('locks after 5 wrong codes; resend then sends nothing and the user logs in again', async () => {
+      await verifiedUser('lock2@example.com');
+      await login('lock2@example.com');
+      const code = codeFor('lock2@example.com');
+
+      for (let i = 0; i < 5; i++) await verifyLogin('lock2@example.com', wrongCode(code));
+      const locked = await verifyLogin('lock2@example.com', code);
+      expect(locked.status).toBe(400);
+      expect(locked.body.code).toBe('OTP_LOCKED');
+      expect(locked.body.accessToken).toBeUndefined();
+
+      await db.collection('otp_codes').updateMany({}, { $set: { createdAt: new Date(Date.now() - 61_000) } });
+      await resendLogin('lock2@example.com');
+      expect(mail.outbox).toHaveLength(1); // still only the first code
+
+      await login('lock2@example.com'); // the password again -> a fresh code
+      const fresh = await verifyLogin('lock2@example.com', codeFor('lock2@example.com'));
+      expect(fresh.status).toBe(200);
+      expect(fresh.body.accessToken).toEqual(expect.any(String));
+    });
+
+    it('resend works after 60 seconds, and only the newest code is accepted', async () => {
+      await verifiedUser('resend2@example.com');
+      await login('resend2@example.com');
+      const first = codeFor('resend2@example.com');
+
+      await resendLogin('resend2@example.com');
+      expect(mail.outbox).toHaveLength(1); // cooldown
+
+      await db.collection('otp_codes').updateMany({}, { $set: { createdAt: new Date(Date.now() - 61_000) } });
+      await resendLogin('resend2@example.com');
+      expect(mail.outbox).toHaveLength(2);
+      const second = codeFor('resend2@example.com');
+
+      if (first !== second) expect((await verifyLogin('resend2@example.com', first)).status).toBe(400);
+      expect((await verifyLogin('resend2@example.com', second)).status).toBe(200);
     });
   });
 

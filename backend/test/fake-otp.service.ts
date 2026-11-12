@@ -20,6 +20,10 @@ export class FakeOtpService {
     return FakeOtpService.CODE;
   }
 
+  async hasActive(userId: string, purpose: string): Promise<boolean> {
+    return this.active.has(`${userId}:${purpose}`);
+  }
+
   async discardAll(userId: string): Promise<void> {
     for (const key of [...this.active.keys()]) if (key.startsWith(`${userId}:`)) this.active.delete(key);
   }

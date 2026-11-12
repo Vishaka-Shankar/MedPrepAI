@@ -8,7 +8,15 @@ import { AuthProvider } from '../auth/AuthContext';
 import { VerifyOtpPage, VerifyOtpState } from './VerifyOtpPage';
 
 vi.mock('../api/auth', () => ({
-  authApi: { login: vi.fn(), register: vi.fn(), verifyOtp: vi.fn(), resendOtp: vi.fn(), me: vi.fn() },
+  authApi: {
+    login: vi.fn(),
+    verifyLogin: vi.fn(),
+    resendLogin: vi.fn(),
+    register: vi.fn(),
+    verifyOtp: vi.fn(),
+    resendOtp: vi.fn(),
+    me: vi.fn(),
+  },
 }));
 const mocked = vi.mocked(authApi);
 
@@ -134,5 +142,61 @@ describe('VerifyOtpPage errors', () => {
     expect(screen.getByRole('heading', { name: 'Verify your email' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Log in' })).toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Verification code' })).not.toBeInTheDocument();
+  });
+});
+
+describe('VerifyOtpPage as the login code screen (two-step login)', () => {
+  const loginState: VerifyOtpState = {
+    email: 'ayesha@example.com',
+    notice: 'We sent a 6-digit login code to your email. It expires in 10 minutes.',
+    purpose: 'login',
+  };
+
+  it('checks the code with /auth/login/verify and logs the user in', async () => {
+    mocked.verifyLogin.mockResolvedValue({
+      accessToken: 'token-2fa',
+      user: { id: '1', name: 'Ayesha', email: 'ayesha@example.com', role: 'student' },
+    });
+    const user = userEvent.setup();
+    renderPage(loginState);
+
+    expect(screen.getByRole('heading', { name: 'Enter your login code' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('We sent a 6-digit login code');
+    await user.click(screen.getByLabelText('Digit 1 of 6'));
+    await user.paste('654321');
+    await user.click(screen.getByRole('button', { name: 'Log in' }));
+
+    expect(mocked.verifyLogin).toHaveBeenCalledWith({ email: 'ayesha@example.com', code: '654321' });
+    expect(mocked.verifyOtp).not.toHaveBeenCalled();
+    expect(localStorage.getItem('medprep_token')).toBe('token-2fa');
+  });
+
+  it('a locked login code tells the user to log in again', async () => {
+    mocked.verifyLogin.mockRejectedValue(httpError(400, { code: 'OTP_LOCKED', message: 'Too many wrong attempts.' }));
+    const user = userEvent.setup();
+    renderPage(loginState);
+
+    await user.click(screen.getByLabelText('Digit 1 of 6'));
+    await user.paste('000000');
+    await user.click(screen.getByRole('button', { name: 'Log in' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Please log in again to get a new code.');
+    expect(screen.getByRole('link', { name: 'Back to log in' })).toHaveAttribute('href', '/login');
+  });
+
+  describe('resend', () => {
+    beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }));
+    afterEach(() => vi.useRealTimers());
+
+    it('asks /auth/login/resend for a new login code after 60 s', async () => {
+      mocked.resendLogin.mockResolvedValue({ message: 'If a login is waiting for a code, a new one is on its way.' });
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      renderPage(loginState);
+
+      act(() => vi.advanceTimersByTime(60_000));
+      await user.click(resendButton());
+      expect(mocked.resendLogin).toHaveBeenCalledWith({ email: 'ayesha@example.com' });
+      expect(mocked.resendOtp).not.toHaveBeenCalled();
+      expect(await screen.findByRole('status')).toHaveTextContent('a new one is on its way');
+    });
   });
 });

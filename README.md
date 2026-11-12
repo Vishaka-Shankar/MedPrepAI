@@ -35,6 +35,7 @@ cp .env.example .env     # then fill in MONGODB_URI and JWT_SECRET
 | `JWT_EXPIRES_IN` | backend | Token lifetime, e.g. `1d` |
 | `PORT` | backend | API port (default 3000) |
 | `FRONTEND_ORIGIN` | backend | The only browser origin allowed by CORS |
+| `LOGIN_2FA` | backend | Two-step login: `true` (default) emails a 6-digit login code after the right password; `false` = password only |
 | `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` | backend `npm run db:seed-admin` | The first admin account (see *Users, roles and password reset*) |
 | `VITE_API_URL` | frontend | Where the React app finds the API |
 | `MONGODB_URI`, `TESSERACT_CMD`, `OCR_*`, `DATA_RAW_DIR`, `EMBED_*`, `CHUNK_*` | rag-service | Ingestion pipeline settings (table in `rag-service/README.md`) |
@@ -79,13 +80,16 @@ npm run start:dev        # http://localhost:3000
 | POST | `/auth/register` | public | `{ name, email, password }` | 201 `{ message, email }` and an email with a 6-digit code (no token yet) |
 | POST | `/auth/verify-otp` | public, 10/min per IP | `{ email, code }` | 200 `{ accessToken, user }` |
 | POST | `/auth/resend-otp` | public, 3/min per IP | `{ email }` | 200 `{ message }` (always the same) |
-| POST | `/auth/login` | public | `{ email, password }` | 200 `{ accessToken, user }`; 401 generic; **403 `EMAIL_NOT_VERIFIED`** |
+| POST | `/auth/login` | public, 10/min per IP | `{ email, password }` | 200 `{ twoFactorRequired: true, email, message }` and an email with a login code (no token yet); with `LOGIN_2FA=false` 200 `{ accessToken, user }`; 401 generic; **403 `EMAIL_NOT_VERIFIED`** |
+| POST | `/auth/login/verify` | public, 10/min per IP | `{ email, code }` | 200 `{ accessToken, user }` (step 2 of login) |
+| POST | `/auth/login/resend` | public, 3/min per IP | `{ email }` | 200 `{ message }` (always the same) |
 | GET | `/auth/me` | Bearer token | | 200 `{ id, name, email, role, emailVerified }` |
 
 **How it works**
 1. **Validation:** `RegisterDto`/`LoginDto` use class-validator. The global `ValidationPipe` trims and lowercases emails, and rejects bad input and unknown fields with **400** (so a user cannot send `role: "instructor"`).
+   - **Names** (`IsPersonName` in `src/auth/dto/validators.ts`, used by register, edit profile and the admin seed): 2 to 80 characters, **letters only** (any alphabet, so Urdu works too), with a single space, hyphen, apostrophe or dot between the parts. "Ayesha Khan", "Abdul-Rahman", "O'Brien" and "M. Ali" pass; "Ali123", "12345", "Ali@Khan" and "#$%" get **400**. Extra spaces are tidied ("Ayesha   Khan" is saved as "Ayesha Khan"). The frontend checks the same rule first (`nameProblem` in `frontend/src/lib/validation.ts`), so the user sees "Name cannot contain numbers." straight away.
 2. **Register:** checks for a duplicate email (**409**), hashes the password with **bcrypt** (cost 10), saves the user as an **unverified** `student`, and emails a code (see *Email verification* below). There is no token until the email is verified.
-3. **Login:** finds the user, compares with `bcrypt.compare`, and returns a JWT. An unknown email and a wrong password give the *same* **401** message, so emails cannot be discovered.
+3. **Login:** finds the user, compares with `bcrypt.compare`, then emails a login code (two-step login, see below); the JWT comes from `/auth/login/verify`. An unknown email and a wrong password give the *same* **401** message, so emails cannot be discovered.
 4. **JWT:** payload `{ sub: userId, email, role, tv }`, signed with `JWT_SECRET`, expiring after `JWT_EXPIRES_IN`. `tv` is the user's `tokenVersion` (see *Sessions* below).
 5. **Global guard:** `JwtAuthGuard` is registered as `APP_GUARD`, so **every route requires a token by default**. Routes opt out with `@Public()`. `JwtStrategy` verifies the token and loads the user (a deleted user's token stops working).
 6. **No secrets leak:** `passwordHash` has `select: false` and is never returned; unknown errors become a generic 500.
@@ -95,7 +99,9 @@ npm run start:dev        # http://localhost:3000
 curl -X POST localhost:3000/auth/register -H "Content-Type: application/json" \
   -d '{"name":"Ayesha","email":"ayesha@example.com","password":"secret123"}'
 curl -X POST localhost:3000/auth/login -H "Content-Type: application/json" \
-  -d '{"email":"ayesha@example.com","password":"secret123"}'
+  -d '{"email":"ayesha@example.com","password":"secret123"}'          # emails a login code
+curl -X POST localhost:3000/auth/login/verify -H "Content-Type: application/json" \
+  -d '{"email":"ayesha@example.com","code":"<code from the email>"}'  # returns the token
 curl localhost:3000/auth/me -H "Authorization: Bearer <accessToken>"
 ```
 
@@ -115,6 +121,20 @@ curl localhost:3000/auth/me -H "Authorization: Bearer <accessToken>"
 - **Resend:** has a **60-second cooldown**, and a new code replaces the older ones. It **always gives the same answer**, so it cannot reveal which emails are registered.
 - **Rate limits:** `verify-otp` and `resend-otp` are limited per IP with `@nestjs/throttler`.
 - **Mail failures:** if the email cannot be sent, the API answers **503** "Couldn't send the email, try again". The reason is logged, the half-created account is removed so registering again works, and the app keeps running.
+
+### Two-step login (2FA, added 2026-11-11)
+
+Logging in needs two things: the **password** (something you know) and a **code emailed to you** (proof you own the inbox).
+
+1. `POST /auth/login` checks the password. If it is right, it emails a 6-digit code with purpose `login` and answers `{ twoFactorRequired: true, email, message }`. **No token yet.**
+2. `POST /auth/login/verify { email, code }` checks the code and returns `{ accessToken, user }`.
+
+- **Same code system** as email verification (`OtpService`, `otp_codes` collection): bcrypt-hashed, 10 minutes, 5 wrong attempts then locked, single use. `OTP_PURPOSES` now has `login`, so a verify-email or reset code can never be used to log in.
+- **Pressing "Log in" twice** within 60 s keeps the code already sent instead of sending another email.
+- **Resend** (`/auth/login/resend`) only sends a code while a login is waiting for one, which means only after the right password. It always gives the same answer. After 5 wrong codes, or after 10 minutes, the user must log in again with the password.
+- **Mail failure:** login answers 503 and the unsent code is deleted, so the next try sends a fresh one.
+- **Switch:** `LOGIN_2FA=false` in `.env` turns it off (the password alone gives the token, as before), e.g. if email stops working during a demo. Restart the backend after changing it.
+- Code: `AuthService.login`, `verifyLogin`, `resendLogin` (`src/auth/auth.service.ts`), `OtpService.hasActive`, routes in `auth.controller.ts`.
 
 **Accounts created before this feature:** run once:
 ```bash
@@ -292,6 +312,7 @@ npm run dev              # http://localhost:5173
 - **Email verification (`/verify-otp`, `pages/VerifyOtpPage.tsx`):**
   - Register no longer logs in: on success it opens `/verify-otp` with the email (React Router state).
   - Login answered with 403 `EMAIL_NOT_VERIFIED` also opens `/verify-otp` (the server has just emailed a code); after verifying, the user returns to the page they first asked for.
+  - **Two-step login:** when `/auth/login` answers `{ twoFactorRequired: true }`, Login opens the same page with `purpose: 'login'`. It then says "Enter your login code", the button says "Log in", and it calls `/auth/login/verify` and `/auth/login/resend` (`AuthContext.verifyLogin`, `resendLogin`). A locked, expired or invalid login code says "Please log in again to get a new code", and the footer link goes back to Login.
   - `components/ui/OtpInput.tsx`: six digit boxes; typing moves to the next box, Backspace on an empty box goes back, pasting `123456` (or `123 456`) fills them all, and phone "one-time code" autofill works.
   - A "Resend code" button with a 60 s countdown (`hooks/useCountdown.ts`), and a hint that codes expire after 10 minutes.
   - Errors: `OTP_WRONG` shows the attempts left; `OTP_EXPIRED`, `OTP_LOCKED` and `OTP_INVALID` say to press "Resend code" (the boxes are emptied). A 503 or 429 keeps the digits, so pressing Verify again just works.
@@ -442,8 +463,8 @@ The answer text refers to citations as `[1]`, `[2]`, ..., in list order. `refuse
 ## 6. Tests
 
 ```bash
-cd backend  && npm test     # 136 tests: chat on a real MongoDB (auth required, saves message + citations renumbered [1]..[n], out of scope, rag down / AI key missing -> 503 + failed, validation, user isolation in history, 50 limit, Unknown source, account delete), RagClient (timeout, down, 503 sentence), renumbering, RAG_SERVICE_URL, atlas_index.json shape + 384-d index, + users CRUD, roles, change email, password reset, sessions, delete cascade, admin seed on a real MongoDB, + OTP on a real MongoDB (one email per sign-up, verify, attempts, lock, expiry, resend cooldown, 403 unverified, hashed codes, no codes in logs, throttling), + real-MongoDB auth e2e (register -> row -> login -> generic 401 -> 503 when DB down), env validation, DTO rules, guard, AuthService, schemas, full HTTP auth flow
-cd frontend && npm test     # 149 tests: quiz Skip, auth layout copy + Log in/Sign up switch, chat Sources panel + Copy answer, dashboard table + summaries, quiz navigator, chat subject filter + random per-subject suggestions, coded 503 sentence on the chat page, forgot password (link, steps, validation tied to inputs, wrong/expired code, 503 retry, 429), profile (edit name, change password: fresh token, wrong current password on its field, reuse, 401 logout; change email 409 -> code -> done; delete dialog: focus, Cancel/Escape, wrong password, 503, success -> Register), admin (role guard, own row locked, role change, confirmed delete, search, pagination, 503 retry), OTP boxes (typing, paste, Backspace), resend countdown, verify errors (wrong/expired/locked/invalid, 503 retry), register -> verify -> chat, login 403 -> verify, 429/503 messages, mastery colours (0.5 / 0.7 boundaries), priorities, insufficient data, quiz keyboard, data hook, chat API requests (subjectId), citation panel, out of scope, retry/timeout, UI components, Quiz, Dashboard priorities (P = w(1-M)), navigation, routes and auth, form validation, Chat page (send, Enter/Shift+Enter, history,
+cd backend  && npm test     # 166 tests: name rule (letters only, no digits or symbols, spaces tidied), two-step login (code emailed after the right password, no token until /auth/login/verify, wrong/locked code, resend only while a login waits, mail failure, LOGIN_2FA switch, hashed login codes on a real MongoDB), chat on a real MongoDB (auth required, saves message + citations renumbered [1]..[n], out of scope, rag down / AI key missing -> 503 + failed, validation, user isolation in history, 50 limit, Unknown source, account delete), RagClient (timeout, down, 503 sentence), renumbering, RAG_SERVICE_URL, atlas_index.json shape + 384-d index, + users CRUD, roles, change email, password reset, sessions, delete cascade, admin seed on a real MongoDB, + OTP on a real MongoDB (one email per sign-up, verify, attempts, lock, expiry, resend cooldown, 403 unverified, hashed codes, no codes in logs, throttling), + real-MongoDB auth e2e (register -> row -> login -> generic 401 -> 503 when DB down), env validation, DTO rules, guard, AuthService, schemas, full HTTP auth flow
+cd frontend && npm test     # 171 tests: name rule on sign up and edit profile, two-step login (Login -> code screen, /auth/login/verify, locked code -> log in again, resend), quiz Skip, auth layout copy + Log in/Sign up switch, chat Sources panel + Copy answer, dashboard table + summaries, quiz navigator, chat subject filter + random per-subject suggestions, coded 503 sentence on the chat page, forgot password (link, steps, validation tied to inputs, wrong/expired code, 503 retry, 429), profile (edit name, change password: fresh token, wrong current password on its field, reuse, 401 logout; change email 409 -> code -> done; delete dialog: focus, Cancel/Escape, wrong password, 503, success -> Register), admin (role guard, own row locked, role change, confirmed delete, search, pagination, 503 retry), OTP boxes (typing, paste, Backspace), resend countdown, verify errors (wrong/expired/locked/invalid, 503 retry), register -> verify -> chat, login 403 -> verify, 429/503 messages, mastery colours (0.5 / 0.7 boundaries), priorities, insufficient data, quiz keyboard, data hook, chat API requests (subjectId), citation panel, out of scope, retry/timeout, UI components, Quiz, Dashboard priorities (P = w(1-M)), navigation, routes and auth, form validation, Chat page (send, Enter/Shift+Enter, history,
                             #   citations, refusal style, service down, session expired, retry), mock API
 cd rag-service && .venv\Scripts\python.exe -m pytest   # 196 tests: citation snippets (claim-matched, noise/heading skipped, <= 200 chars), Q&A service (answer + citations, out of scope without an LLM call, threshold/margin, Groq retry/timeout, empty key, API, CORS, lazy model), junk filter, syllabus re-ranking, cleaning, chunking, OCR page choice, subjects, page cache, progress, embedding config, dimension check, retrieval, re-embed (resume, no duplicates, low-memory pause; fake embedder, local mongod), storage estimate
 ```

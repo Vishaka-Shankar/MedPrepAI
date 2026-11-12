@@ -21,14 +21,23 @@ export interface VerifyOtpState {
   notice?: string;
   /** The page to open after verifying (GuestOnlyRoute reads it); /chat by default. */
   from?: string;
+  /** 'login' = the code of a two-step login (sent after the right password); default: verify the email. */
+  purpose?: 'verify_email' | 'login';
 }
 
 const RESEND_HINT = 'Press "Resend code" to get a new one.';
+// A dead login code can't be resent (the server only resends while a login is waiting): the password is needed again
+const LOGIN_AGAIN_HINT = 'Please log in again to get a new code.';
 
 export function VerifyOtpPage() {
-  const { verifyOtp, resendOtp } = useAuth();
+  const { verifyOtp, resendOtp, verifyLogin, resendLogin } = useAuth();
   const state = (useLocation().state as VerifyOtpState | null) ?? {};
   const email = state.email ?? '';
+  const isLogin = state.purpose === 'login';
+  // The same screen does both jobs; only the title, the two API calls and one hint differ
+  const title = isLogin ? 'Enter your login code' : 'Verify your email';
+  const checkCode = isLogin ? verifyLogin : verifyOtp;
+  const sendNewCode = isLogin ? resendLogin : resendOtp;
 
   const [digits, setDigits] = useState(emptyCode);
   // Changing the key re-creates the boxes, which puts the cursor back in the first one
@@ -55,11 +64,11 @@ export function VerifyOtpPage() {
     setSubmitting(true);
     try {
       // On success GuestOnlyRoute sees the new user and redirects into the app (/chat by default)
-      await verifyOtp(email, code);
+      await checkCode(email, code);
     } catch (err) {
       // A wrong or dead code empties the boxes; for 429, 503 (database or mail down) or no connection
       // the digits stay, so "Verify" can simply be pressed again
-      const { message, clearCode } = describeCodeError(err, RESEND_HINT);
+      const { message, clearCode } = describeCodeError(err, isLogin ? LOGIN_AGAIN_HINT : RESEND_HINT);
       setError(message);
       if (clearCode) clearBoxes();
       setSubmitting(false);
@@ -70,7 +79,7 @@ export function VerifyOtpPage() {
     setError('');
     setResending(true);
     try {
-      setNotice(await resendOtp(email));
+      setNotice(await sendNewCode(email));
       clearBoxes();
       restartCooldown();
     } catch (err) {
@@ -84,7 +93,7 @@ export function VerifyOtpPage() {
     // Opened directly (e.g. a bookmark): we don't know which account to verify
     return (
       <AuthLayout>
-        <h1 className={styles.title}>Verify your email</h1>
+        <h1 className={styles.title}>{title}</h1>
         <p className={styles.hint}>
           Log in with your email and password and we will send you a new code.
         </p>
@@ -97,7 +106,7 @@ export function VerifyOtpPage() {
 
   return (
     <AuthLayout>
-      <h1 className={styles.title}>Verify your email</h1>
+      <h1 className={styles.title}>{title}</h1>
       {notice && (
         <p className={styles.notice} role="status">
           {notice}
@@ -117,14 +126,22 @@ export function VerifyOtpPage() {
           </p>
         )}
         <Button type="submit" block disabled={submitting || !complete}>
-          {submitting ? 'Verifying...' : 'Verify'}
+          {submitting ? 'Verifying...' : isLogin ? 'Log in' : 'Verify'}
         </Button>
         <Button variant="outline" block onClick={handleResend} disabled={resending || secondsLeft > 0}>
           {resending ? 'Sending...' : secondsLeft > 0 ? `Resend code (${secondsLeft}s)` : 'Resend code'}
         </Button>
       </form>
       <p className={styles.footer}>
-        Wrong email? <Link to="/register">Register again</Link>
+        {isLogin ? (
+          <>
+            Not you? <Link to="/login">Back to log in</Link>
+          </>
+        ) : (
+          <>
+            Wrong email? <Link to="/register">Register again</Link>
+          </>
+        )}
       </p>
     </AuthLayout>
   );

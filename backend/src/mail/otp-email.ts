@@ -10,6 +10,7 @@ const SUBJECTS: Record<OtpPurpose, string> = {
   verify_email: 'Your MedPrep AI verification code',
   reset_password: 'Your MedPrep AI password reset code',
   change_email: 'Confirm your new MedPrep AI email address',
+  login: 'Your MedPrep AI login code',
 };
 
 // The words before the code, so each email says what the code is for
@@ -17,6 +18,7 @@ const LEADS: Record<OtpPurpose, string> = {
   verify_email: 'Your MedPrep AI verification code is',
   reset_password: 'Your MedPrep AI password reset code is',
   change_email: 'Your code to confirm this new MedPrep AI email address is',
+  login: 'Your MedPrep AI login code is',
 };
 
 /**

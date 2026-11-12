@@ -38,6 +38,7 @@ describe('users CRUD, roles and password reset against a real MongoDB (e2e)', ()
   beforeAll(async () => {
     mongo = await MongoMemoryServer.create();
     process.env.MONGODB_URI = mongo.getUri('medprep_users_e2e'); // replaces the Atlas URI from ../.env
+    process.env.LOGIN_2FA = 'false'; // these tests log in with the password only (two-step login is tested in auth.db.e2e)
     const { AppModule } = await import('../src/app.module');
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -491,6 +492,9 @@ describe('users CRUD, roles and password reset against a real MongoDB (e2e)', ()
       });
       expect(() => readAdminEnv({ ADMIN_NAME: 'Admin', ADMIN_EMAIL: 'a@b.com', ADMIN_PASSWORD: 'weakpass' })).toThrow(
         /ADMIN_PASSWORD must be 8 to 72 characters/,
+      );
+      expect(() => readAdminEnv({ ADMIN_NAME: 'Admin123', ADMIN_EMAIL: 'a@b.com', ADMIN_PASSWORD: 'Admin1234' })).toThrow(
+        /ADMIN_NAME can only contain letters/,
       );
       try {
         readAdminEnv({ ADMIN_EMAIL: 'bad', ADMIN_PASSWORD: 'leaky-secret' });

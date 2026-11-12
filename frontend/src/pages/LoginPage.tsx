@@ -25,8 +25,14 @@ export function LoginPage() {
     setError('');
     setSubmitting(true);
     try {
-      // On success GuestOnlyRoute sees the new user and redirects into the app (/chat by default)
-      await login(email, password);
+      // Logged in: GuestOnlyRoute sees the new user and redirects into the app (/chat by default)
+      const codeStep = await login(email, password);
+      if (codeStep) {
+        // Two-step login: the right password emailed a login code, so go and enter it
+        const next: VerifyOtpState = { email: codeStep.email, notice: codeStep.message, from, purpose: 'login' };
+        navigate('/verify-otp', { state: next });
+        return;
+      }
     } catch (err) {
       if (getErrorCode(err) === 'EMAIL_NOT_VERIFIED') {
         // Right password, but the email was never verified: the server just sent a code, so go and enter it

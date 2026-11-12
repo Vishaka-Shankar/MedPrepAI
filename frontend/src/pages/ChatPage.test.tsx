@@ -182,8 +182,11 @@ describe('Chat page', () => {
   });
 
   describe('citations', () => {
+    // Undo the wide-screen matchMedia spy even if a test fails half way, so it can't leak into the next test
+    afterEach(() => vi.restoreAllMocks());
+
     it('on wide screens a [n] mark selects that answer for the Sources panel instead of opening a dialog', async () => {
-      const wide = vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true } as MediaQueryList);
+      vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true } as MediaQueryList);
       const first = answered({ id: 'a1', question: 'What is osmosis?' });
       const second = answered({
         id: 'a2',
@@ -196,7 +199,7 @@ describe('Chat page', () => {
 
       // By default the panel shows the newest cited answer
       const panel = await screen.findByRole('complementary', { name: 'Sources of the selected answer' });
-      expect(within(panel).getByText('What is the pH scale?')).toBeInTheDocument();
+      expect(await within(panel).findByText('What is the pH scale?')).toBeInTheDocument(); // wait for the history to load
 
       const firstAnswer = (await screen.findAllByRole('article', { name: 'Answer' }))[0];
       await userEvent.click(within(firstAnswer).getByRole('button', { name: 'Source 2: MDCAT syllabus, page 12' }));
@@ -208,7 +211,6 @@ describe('Chat page', () => {
       // A source in the panel opens the full citation
       await userEvent.click(current!);
       expect(screen.getByRole('dialog', { name: 'MDCAT syllabus' })).toBeInTheDocument();
-      wide.mockRestore();
     });
 
     it('opens the citation panel from a [n] mark, with source, page and full snippet', async () => {

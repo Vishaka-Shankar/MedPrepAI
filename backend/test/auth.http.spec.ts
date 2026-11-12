@@ -59,7 +59,7 @@ describe('Auth over HTTP', () => {
     await request(server()).get('/health').expect(200, { status: 'ok' });
   });
 
-  it('register -> verify-otp -> login -> me works end to end', async () => {
+  it('register -> verify-otp -> login -> login code -> me works end to end', async () => {
     const reg = await request(server()).post('/auth/register').send(ayesha).expect(201);
     expect(reg.body).toEqual({ message: expect.any(String), email: 'ayesha@example.com' });
     expect(reg.body.accessToken).toBeUndefined(); // no token before the email is verified
@@ -70,9 +70,17 @@ describe('Auth over HTTP', () => {
       .expect(200);
     expect(verified.body.user).toMatchObject({ email: 'ayesha@example.com', role: 'student', emailVerified: true });
 
-    const login = await request(server())
+    // Step 1: the right password emails a login code, still no token
+    const step1 = await request(server())
       .post('/auth/login')
       .send({ email: 'AYESHA@example.com', password: 'secret123' })
+      .expect(200);
+    expect(step1.body).toEqual({ twoFactorRequired: true, email: 'ayesha@example.com', message: expect.any(String) });
+
+    // Step 2: the emailed code gives the token
+    const login = await request(server())
+      .post('/auth/login/verify')
+      .send({ email: 'ayesha@example.com', code: FakeOtpService.CODE })
       .expect(200);
 
     const me = await request(server())
@@ -86,6 +94,22 @@ describe('Auth over HTTP', () => {
     await request(server()).post('/auth/register').send(ayesha).expect(201);
     const res = await request(server()).post('/auth/login').send({ email: ayesha.email, password: ayesha.password }).expect(403);
     expect(res.body).toMatchObject({ code: 'EMAIL_NOT_VERIFIED', email: 'ayesha@example.com' });
+  });
+
+  it('login/verify refuses a wrong code and validates its input', async () => {
+    await request(server()).post('/auth/register').send(ayesha).expect(201);
+    await request(server()).post('/auth/verify-otp').send({ email: ayesha.email, code: FakeOtpService.CODE }).expect(200);
+    await request(server()).post('/auth/login').send({ email: ayesha.email, password: ayesha.password }).expect(200);
+
+    const wrong = await request(server()).post('/auth/login/verify').send({ email: ayesha.email, code: '000000' }).expect(400);
+    expect(wrong.body.accessToken).toBeUndefined();
+    const bad = await request(server()).post('/auth/login/verify').send({ email: ayesha.email, code: '12ab' }).expect(400);
+    expect(bad.body.message).toContain('code must be 6 digits');
+  });
+
+  it('login/resend always gives the same answer', async () => {
+    const res = await request(server()).post('/auth/login/resend').send({ email: 'nobody@example.com' }).expect(200);
+    expect(res.body).toEqual({ message: expect.any(String) });
   });
 
   it('verify-otp validates its input (6 digits)', async () => {
